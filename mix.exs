@@ -7,8 +7,10 @@ defmodule Clickhousex.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       deps: deps(),
-      name: "Clickhousex",
+      name: "ClickhousEx",
       description: description(),
+      maintainers: maintainers(),
+      licenses: ["Apache 2.0"]
     ]
   end
 
@@ -27,6 +29,10 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp description do
-    "ClickHouse driver for Elixir."
+    "ClickHouse driver for Elixir (uses ODBC)."
+  end
+
+  defp maintainers do
+    ["Ivan Zinoviev", "Roman Chudov", "Konstantin Grabar", "Evgeniy Shurmin", "Alexey Lukyanov"]
   end
 end
