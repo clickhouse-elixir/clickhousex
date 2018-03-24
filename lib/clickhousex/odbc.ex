@@ -20,12 +20,13 @@ defmodule Clickhousex.ODBC do
   @doc """
   Starts the connection process to the ODBC driver.
 
-  `conn_str` should be a connection string in the format required by
-  your ODBC driver.
+  `conn_str` should be a connection string in the format required by ODBC driver.
   `opts` will be passed verbatim to `:odbc.connect/2`.
   """
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
+  @spec start_link(binary(), Keyword.t) :: {:ok, pid()}
+  def start_link(conn_str, opts) do
+    GenServer.start_link(__MODULE__,
+      [{:conn_str, to_charlist(conn_str)} | opts])
   end
 
   @doc """
@@ -47,7 +48,7 @@ defmodule Clickhousex.ODBC do
       GenServer.call(
         pid,
         {:query, %{statement: IO.iodata_to_binary(statement), params: params}},
-        Keyword.get(opts, :timeout, 5000)
+        Keyword.get(opts, :timeout, Clickhousex.timeout())
       )
     else
       {:error, %Clickhousex.Error{message: :no_connection}}
@@ -104,16 +105,10 @@ defmodule Clickhousex.ODBC do
 
   @doc false
   def init(opts) do
-#    connect_opts = opts
-#                   |> Keyword.delete_first(:conn_str)
-#                   |> Keyword.put_new(:auto_commit, :off)
-#                   |> Keyword.put_new(:timeout, 5000)
-#                   |> Keyword.put_new(:extended_errors, :on)
-#                   |> Keyword.put_new(:tuple_row, :off)
-#                   |> Keyword.put_new(:binary_strings, :on)
-    connect_opts = []
-    dsn = "DSN=#{opts[:dsn]};DATABASE=#{opts[:database]};" |> to_charlist
-    case handle_errors(:odbc.connect(dsn, connect_opts)) do
+    connect_opts = opts
+                   |> Keyword.delete_first(:conn_str)
+                   |> Keyword.put_new(:timeout, Clickhousex.timeout())
+    case handle_errors(:odbc.connect(opts[:conn_str], connect_opts)) do
       {:ok, pid} -> {:ok, pid}
       {:error, reason} -> {:stop, reason}
     end
@@ -121,7 +116,7 @@ defmodule Clickhousex.ODBC do
 
   @doc false
   def handle_call({:query, %{statement: statement, params: params}}, _from, state) do
-    sql_query = statement |> insert_params_in_query(params) |> to_charlist
+    sql_query = statement |> bind_query_params(params) |> to_charlist
     {:reply,
       #handle_errors(:odbc.param_query(state, to_charlist(statement), params)),
       handle_errors(:odbc.sql_query(state, sql_query)),
@@ -147,7 +142,7 @@ defmodule Clickhousex.ODBC do
   defp handle_errors(term), do: term
 
 
-  defp insert_params_in_query(query, params) do
+  defp bind_query_params(query, params) do
     query_parts = String.split(query, "?")
     case length(query_parts) do
       1 ->

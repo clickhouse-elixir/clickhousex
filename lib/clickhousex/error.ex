@@ -42,8 +42,6 @@ defmodule Clickhousex.Error do
   end
   defp get_code(_), do: :unknown
 
-#  defp translate("42S01"), do: :base_table_or_view_already_exists
-#  defp translate("42S02"), do: :base_table_or_view_not_found
   defp translate("28000"), do: :invalid_authorization
   defp translate("08" <> _), do: :connection_exception
   defp translate(code), do: code

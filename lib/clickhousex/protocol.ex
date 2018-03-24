@@ -4,14 +4,13 @@ defmodule Clickhousex.Protocol do
   require Logger
   @behaviour DBConnection
 
-  @timeout 15000
-  @max_rows 500
-
   defstruct [pid: nil, clickhouse: :idle, conn_opts: []]
 
-  @type state :: %__MODULE__{pid: pid(),
+  @type state :: %__MODULE__{
+                   pid: pid(),
                    clickhouse: :idle,
-                   conn_opts: Keyword.t}
+                   conn_opts: Keyword.t
+                 }
 
   @type query :: Clickhousex.Query.t
   @type params :: [{:odbc.odbc_data_type(), :odbc.value()}]
@@ -22,7 +21,26 @@ defmodule Clickhousex.Protocol do
   @spec connect(opts :: Keyword.t) :: {:ok, state} |
                                       {:error, Exception.t}
   def connect(opts) do
-    case Clickhousex.ODBC.start_link(opts) do
+    driver = opts[:driver] || "/usr/local/lib/libclickhouseodbc.so"
+    host = opts[:hostname] || "localhost"
+    port = opts[:port] || 8123
+    database = opts[:database] || "default"
+    username = opts[:username] || ""
+    password = opts[:password] || ""
+    timeout = opts[:timeout] || Clickhousex.timeout()
+
+    conn_opts = [
+      {"DRIVER", driver},
+      {"SERVER", host},
+      {"PORT", port},
+      {"USERNAME", username},
+      {"PASSWORD", password},
+      {"DATABASE", database},
+      {"TIMEOUT", timeout}
+    ]
+    conn_str = Enum.reduce(conn_opts, "", fn {key, value}, acc -> acc <> "#{key}=#{value};" end)
+
+    case Clickhousex.ODBC.start_link(conn_str, opts) do
       {:ok, pid} -> {:ok, %__MODULE__{
         pid: pid,
         conn_opts: opts,
@@ -120,6 +138,17 @@ defmodule Clickhousex.Protocol do
           },
           state
         }
+      {command, columns, rows} ->
+        {
+          :ok,
+          %Clickhousex.Result{
+            command: command,
+            columns: Enum.map(columns, &(to_string(&1))),
+            rows: rows,
+            num_rows: Enum.count(rows)
+          },
+          state
+        }
     end
   end
 
@@ -140,27 +169,27 @@ defmodule Clickhousex.Protocol do
     {:ok, %Clickhousex.Result{}, state}
   end
 
-  def handle_deallocate(query, cursor, opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
-
-  def handle_declare(query, params, opts, state) do
-    {:ok, nil, state}
-  end
-
-  def handle_first(query, cursor, opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
-
   def handle_info(msg, state) do
     {:ok, state}
-  end
-
-  def handle_next(query, cursor, opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
   end
 
   def handle_rollback(opts, state) do
     {:ok, %Clickhousex.Result{}, state}
   end
+
+#  def handle_deallocate(query, cursor, opts, state) do
+#    {:ok, %Clickhousex.Result{}, state}
+#  end
+
+#  def handle_declare(query, params, opts, state) do
+#    {:ok, nil, state}
+#  end
+
+#  def handle_first(query, cursor, opts, state) do
+#    {:ok, %Clickhousex.Result{}, state}
+#  end
+
+#  def handle_next(query, cursor, opts, state) do
+#    {:ok, %Clickhousex.Result{}, state}
+#  end
 end

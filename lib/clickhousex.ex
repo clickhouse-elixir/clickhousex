@@ -18,11 +18,27 @@ defmodule Clickhousex do
   """
   @type conn :: DBConnection.conn
 
-  @pool_timeout 5000
-  @timeout 15_000
-  @max_rows 500
+  @timeout 60_000
+  def timeout(), do: @timeout
 
   ### PUBLIC API ###
+
+  @doc """
+    Connect to ClickHouse using ODBC.
+    `opts` expects a keyword list with zero or more of:
+      * `:driver` - The driver the adapter will use.
+          * default value: `/usr/local/lib/libclickhouseodbc.so`
+      * `:hostname` - The server hostname.
+          * default value: localhost
+      * `:port` - The server port number.
+          * default value: 8123
+      * `:database` - The name of the database.
+          * default value: `default`
+      * `:username` - Username.
+          * default value: empty
+      * `:password` - User's password.
+          * default value: empty
+  """
 
   @spec start_link(Keyword.t) :: {:ok, pid} | {:error, term}
   def start_link(opts) do
@@ -106,7 +122,6 @@ defmodule Clickhousex do
 
   @spec child_spec(Keyword.t) :: Supervisor.Spec.spec
   def child_spec(opts) do
-#    opts = Clickhousex.Utils.default_opts(opts)
     DBConnection.child_spec(Clickhousex.Protocol, opts)
   end
 
