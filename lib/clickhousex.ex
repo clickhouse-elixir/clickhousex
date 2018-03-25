@@ -53,31 +53,26 @@ defmodule Clickhousex do
 
   @spec query!(conn, iodata, list, Keyword.t) :: Clickhousex.Result.t
   def query!(conn, statement, params, opts \\ []) do
-    query(conn, statement, params, opts)
+    query = %Clickhousex.Query{ref: make_ref(), name: "", statement: statement}
+    execute!(conn, query, params, opts)
   end
 
   @spec prepare(conn, iodata, iodata, Keyword.t) :: {:ok, Clickhousex.Query.t} | {:error, term}
   def prepare(conn, name, statement, opts \\ []) do
     query = %Clickhousex.Query{name: name, statement: statement}
-    opts =
-      opts
-      |> defaults()
-      |> Keyword.put(:function, :prepare)
-    case DBConnection.prepare(conn, query, opts) do
-      {:ok, _} = ok ->
-        ok
-      {:error, err} ->
-        raise err
-    end
+    opts = opts
+           |> defaults()
+           |> Keyword.put(:function, :prepare)
+    DBConnection.prepare(conn, query, opts)
   end
 
   @spec prepare!(conn, iodata, iodata, Keyword.t) :: Clickhousex.Query.t
   def prepare!(conn, name, statement, opts \\ []) do
-    opts =
-      opts
-      |> defaults()
-      |> Keyword.put(:function, :prepare)
-    DBConnection.prepare!(conn, %Clickhousex.Query{name: name, statement: statement}, opts)
+    query = %Clickhousex.Query{name: name, statement: statement}
+    opts = opts
+           |> defaults()
+           |> Keyword.put(:function, :prepare)
+    DBConnection.prepare!(conn, query, opts)
   end
 
   @spec execute(conn, Clickhousex.Query.t, list, Keyword.t) ::
@@ -93,12 +88,7 @@ defmodule Clickhousex do
 
   @spec close(conn, Clickhousex.Query.t, Keyword.t) :: :ok | {:error, term}
   def close(conn, query, opts \\ []) do
-    case DBConnection.close(conn, query, defaults(opts)) do
-      {:ok, _} ->
-        :ok
-      {:error, err} ->
-        raise err
-    end
+    DBConnection.close(conn, query, defaults(opts))
   end
 
   @spec close!(conn, Clickhousex.Query.t, Keyword.t) :: :ok
