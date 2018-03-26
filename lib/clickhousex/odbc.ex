@@ -117,10 +117,12 @@ defmodule Clickhousex.ODBC do
   @doc false
   def handle_call({:query, %{statement: statement, params: params}}, _from, state) do
     sql_query = statement |> bind_query_params(params) |> to_charlist
-    {:reply,
+    {
+      :reply,
       #handle_errors(:odbc.param_query(state, to_charlist(statement), params)),
       handle_errors(:odbc.sql_query(state, sql_query)),
-      state}
+      state
+    }
   end
 
   @doc false
