@@ -1,19 +1,16 @@
 defmodule Clickhousex.Protocol do
   @moduledoc false
 
-  require Logger
-  @behaviour DBConnection
+  use DBConnection
 
-  defstruct [pid: nil, clickhouse: :idle, conn_opts: []]
+  defstruct [pid: nil, conn_opts: []]
 
   @type state :: %__MODULE__{
                    pid: pid(),
-                   clickhouse: :idle,
                    conn_opts: Keyword.t
                  }
 
   @type query :: Clickhousex.Query.t
-  @type params :: [{:odbc.odbc_data_type(), :odbc.value()}]
   @type result :: Clickhousex.Result.t
   @type cursor :: any
 
@@ -29,7 +26,7 @@ defmodule Clickhousex.Protocol do
     password = opts[:password] || ""
     timeout = opts[:timeout] || Clickhousex.timeout()
 
-    conn_opts = [
+    conn_str = Enum.reduce([
       {"DRIVER", driver},
       {"SERVER", host},
       {"PORT", port},
@@ -37,15 +34,17 @@ defmodule Clickhousex.Protocol do
       {"PASSWORD", password},
       {"DATABASE", database},
       {"TIMEOUT", timeout}
-    ]
-    conn_str = Enum.reduce(conn_opts, "", fn {key, value}, acc -> acc <> "#{key}=#{value};" end)
+    ], "", fn {key, value}, acc -> acc <> "#{key}=#{value};" end)
 
     case Clickhousex.ODBC.start_link(conn_str, opts) do
-      {:ok, pid} -> {:ok, %__MODULE__{
-        pid: pid,
-        conn_opts: opts,
-        clickhouse: :idle
-      }}
+      {:ok, pid} ->
+        {
+          :ok,
+          %__MODULE__{
+            pid: pid,
+            conn_opts: opts,
+          }
+        }
       response -> response
     end
   end
@@ -59,6 +58,7 @@ defmodule Clickhousex.Protocol do
     end
   end
 
+  @doc false
   @spec ping(state) ::
     {:ok, state} |
     {:disconnect, term, state}
@@ -78,31 +78,26 @@ defmodule Clickhousex.Protocol do
          do: connect(new_opts)
   end
 
-  @spec checkin(state) ::
-    {:ok, state} |
-    {:disconnect, term, state}
+  @doc false
+  @spec checkin(state) :: {:ok, state}
   def checkin(state) do
     {:ok, state}
   end
 
-  @spec checkout(state) ::
-    {:ok, state} |
-    {:disconnect, term, state}
+  @doc false
+  @spec checkout(state) :: {:ok, state}
   def checkout(state) do
     {:ok, state}
   end
 
-  @spec handle_prepare(Clickhousex.Query.t, Keyword.t, state) ::
-      {:ok, Clickhousex.Query.t, state} |
-      {:error, %ArgumentError{} | term, state} |
-      {:error | :disconnect, %RuntimeError{}, state} |
-      {:disconnect, %DBConnection.ConnectionError{}, state}
+  @doc false
+  @spec handle_prepare(query, Keyword.t, state) :: {:ok, query, state}
   def handle_prepare(query, _, state) do
     {:ok, query, state}
   end
 
   @doc false
-  @spec handle_execute(query, params, opts :: Keyword.t, state) ::
+  @spec handle_execute(query, list, opts :: Keyword.t, state) ::
           {:ok, result, state} |
           {:error | :disconnect, Exception.t, state}
   def handle_execute(query, params, opts, state) do
@@ -111,8 +106,7 @@ defmodule Clickhousex.Protocol do
 
   defp do_query(query, params, opts, state) do
     case Clickhousex.ODBC.query(state.pid, query.statement, params, opts) do
-      {:error,
-        %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
+      {:error, %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
         {:disconnect, reason, state}
       {:error, reason} ->
         {:error, reason, state}
@@ -152,44 +146,34 @@ defmodule Clickhousex.Protocol do
     end
   end
 
+  @doc false
+  @spec handle_begin(opts :: Keyword.t, state) :: {:ok, result, state}
   def handle_begin(opts, state) do
     {:ok, %Clickhousex.Result{}, state}
   end
 
-  @spec handle_close(Clickhousex.Query.t, Keyword.t, state) ::
-    {:ok, Clickhousex.Result.t, state} |
-    {:error, %ArgumentError{} | term, state} |
-    {:error | :disconnect, %RuntimeError{}, state} |
-    {:disconnect, %DBConnection.ConnectionError{}, state}
+  @doc false
+  @spec handle_close(query, Keyword.t, state) :: {:ok, result, state}
   def handle_close(query, opts, state) do
     {:ok, %Clickhousex.Result{}, state}
   end
 
+  @doc false
+  @spec handle_commit(opts :: Keyword.t, state) :: {:ok, result, state}
   def handle_commit(opts, state) do
     {:ok, %Clickhousex.Result{}, state}
   end
 
+  @doc false
+  @spec handle_info(opts :: Keyword.t, state) :: {:ok, result, state}
   def handle_info(msg, state) do
     {:ok, state}
   end
 
+  @doc false
+  @spec handle_rollback(opts :: Keyword.t, state) :: {:ok, result, state}
   def handle_rollback(opts, state) do
     {:ok, %Clickhousex.Result{}, state}
   end
 
-#  def handle_deallocate(query, cursor, opts, state) do
-#    {:ok, %Clickhousex.Result{}, state}
-#  end
-
-#  def handle_declare(query, params, opts, state) do
-#    {:ok, nil, state}
-#  end
-
-#  def handle_first(query, cursor, opts, state) do
-#    {:ok, %Clickhousex.Result{}, state}
-#  end
-
-#  def handle_next(query, cursor, opts, state) do
-#    {:ok, %Clickhousex.Result{}, state}
-#  end
 end

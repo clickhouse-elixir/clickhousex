@@ -25,8 +25,7 @@ defmodule Clickhousex.ODBC do
   """
   @spec start_link(binary(), Keyword.t) :: {:ok, pid()}
   def start_link(conn_str, opts) do
-    GenServer.start_link(__MODULE__,
-      [{:conn_str, to_charlist(conn_str)} | opts])
+    GenServer.start_link(__MODULE__, [{:conn_str, to_charlist(conn_str)} | opts])
   end
 
   @doc """
@@ -42,6 +41,7 @@ defmodule Clickhousex.ODBC do
   `opts` are options to be passed on to `:odbc`
   """
   @spec query(pid(), iodata(), Keyword.t, Keyword.t) :: {:selected, [binary()], [tuple()]} |
+                                                        {:updated, non_neg_integer()} |
                                                         {:error, Exception.t}
   def query(pid, statement, params, opts) do
     if Process.alive?(pid) do
@@ -107,7 +107,7 @@ defmodule Clickhousex.ODBC do
   def init(opts) do
     connect_opts = opts
                    |> Keyword.delete_first(:conn_str)
-                   |> Keyword.put_new(:timeout, Clickhousex.timeout())
+                   |> Clickhousex.defaults()
     case handle_errors(:odbc.connect(opts[:conn_str], connect_opts)) do
       {:ok, pid} -> {:ok, pid}
       {:error, reason} -> {:stop, reason}
@@ -140,10 +140,12 @@ defmodule Clickhousex.ODBC do
     :odbc.disconnect(state)
   end
 
+  @doc false
   defp handle_errors({:error, reason}), do: {:error, Error.exception(reason)}
   defp handle_errors(term), do: term
 
 
+  @doc false
   defp bind_query_params(query, params) do
     query_parts = String.split(query, "?")
     case length(query_parts) do
@@ -162,6 +164,7 @@ defmodule Clickhousex.ODBC do
     end
   end
 
+  @doc false
   defp param_for_query(query_parts, params) when (length(params) == 0) do
     Enum.join(query_parts, "")
   end
@@ -169,6 +172,7 @@ defmodule Clickhousex.ODBC do
     query_head <> param_as_string(params_head) <> param_for_query(query_tail, params_tail)
   end
 
+  @doc false
   defp param_as_string(param) when is_list(param) do
     param |>
       Enum.map(fn(p) -> param_as_string(p) end) |>

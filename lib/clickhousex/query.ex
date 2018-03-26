@@ -4,12 +4,12 @@ defmodule Clickhousex.Query do
   """
 
   @type t :: %__MODULE__{
-      ref:            reference | nil,
-      name:           iodata,
-      statement:      iodata,
+      name:      iodata,
+      statement: iodata,
+      columns:   [String.t] | nil
   }
 
-  defstruct [:ref, :name, :statement]
+  defstruct [:name, :statement, :columns]
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
