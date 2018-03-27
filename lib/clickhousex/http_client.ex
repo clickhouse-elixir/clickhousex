@@ -16,7 +16,7 @@ defmodule Clickhousex.HTTPClient do
     {func, command} = query |> parse_method_and_command()
     query_escaped = query |> query_with_format() #|> URI.encode()
     opts_new = opts ++ [params: %{query: query_escaped}]
-    res = HTTPoison.request(func, base_address, "", [], opts_new)
+    res = HTTPoison.request(func, base_address, "", [{"Content-Length", "0"}], opts_new)
     case res do
       {:ok, resp} ->
         cond do
