@@ -17,14 +17,16 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:logger, :db_connection, :odbc]
+      applications: [:logger, :db_connection, :httpoison]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 1.1"}
+      {:db_connection, "~> 1.1"},
+      {:httpoison, "~> 1.0"},
+      {:poison, "~> 3.1"}
     ]
   end
 

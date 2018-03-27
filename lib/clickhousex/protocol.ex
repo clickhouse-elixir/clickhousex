@@ -65,7 +65,7 @@ defmodule Clickhousex.Protocol do
     {:disconnect, term, state}
   def ping(state) do
     query = %Clickhousex.Query{name: "ping", statement: "SELECT 1"}
-    case do_query_and_gen_result(query, [], [], state) do
+    case do_query(query, [], [], state) do
       {:ok, _, new_state} -> {:ok, new_state}
       {:error, reason, new_state} -> {:disconnect, reason, new_state}
       other -> other
@@ -102,18 +102,21 @@ defmodule Clickhousex.Protocol do
           {:ok, result, state} |
           {:error | :disconnect, Exception.t, state}
   def handle_execute(query, params, opts, state) do
-    do_query_and_gen_result(query, params, opts, state)
+    do_query(query, params, opts, state)
   end
 
-  defp do_query_and_gen_result(query, params, opts, state) do
+  defp do_query(query, params, opts, state) do
     base_address = state.base_address
     username = state.conn_opts.username
     password = state.conn_opts.password
     timeout = state.conn_opts.timeout
 
-    case do_query(query.statement, params, base_address, username, password, timeout) do
-      {:error, %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
-        {:disconnect, reason, state}
+    sql_query = query.statement |> IO.iodata_to_binary() |> Helpers.bind_query_params(params)
+    res = sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
+
+    case res do
+      #{:error, %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
+      #  {:disconnect, reason, state}
       {:error, reason} ->
         {:error, reason, state}
       {:selected, columns, rows} ->
@@ -150,14 +153,6 @@ defmodule Clickhousex.Protocol do
           state
         }
     end
-  end
-
-#  @spec do_query(iodata(), Keyword.t, Keyword.t) :: {:selected, [binary()], [tuple()]} |
-#                                                    {:updated, non_neg_integer()} |
-#                                                    {:error, Exception.t}
-  def do_query(statement, params, base_address, username, password, timeout) do
-    sql_query = statement |> IO.iodata_to_binary() |> Helpers.bind_query_params(params) |> to_charlist
-    sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
   end
 
   @doc false
