@@ -1,47 +1,33 @@
 defmodule Clickhousex.Error do
   @moduledoc """
-  Defines an error returned from the ODBC adapter.
+  Defines an error returned from the client.
   """
 
-  defexception [:message, :odbc_code, constraint_violations: []]
+  defexception [message: "", code: 0, constraint_violations: []]
 
   @type t :: %__MODULE__{
                message: binary(),
-               odbc_code: atom() | binary(),
+               code: integer(),
                constraint_violations: Keyword.t
              }
 
-  @doc false
-  @spec exception(binary()) :: t()
-  def exception({odbc_code, native_code, reason} = message) do
-    %__MODULE__{
-      message: to_string(reason) <> " | ODBC_CODE " <> to_string(odbc_code) <> " | CLICKHOUSE_CODE " <> to_string(native_code),
-      odbc_code: get_code(message),
-      constraint_violations: get_constraint_violations(to_string reason)
-    }
-  end
-
   def exception(message) do
     %__MODULE__{
-      message: to_string(message)
+      message: to_string(message),
+      code: get_code(to_string(message)),
+      constraint_violations: get_constraint_violations(message)
     }
   end
 
-  defp get_code({odbc_code, native_code, _reason}) do
-    cond do
-      native_code == 57 ->
-        :database_already_exists
-      native_code == 60 ->
-        :database_does_not_exists
-      native_code == 210 ->
-        :connection_refused
-      odbc_code !== nil ->
-        translate(to_string odbc_code)
-      true -> :unknown
+  defp get_code(message) do
+    case Regex.scan(~r/^Code: (\d+)/i, message) do
+      [[_, code]] -> translate(code)
+      _ -> :unknown
     end
   end
-  defp get_code(_), do: :unknown
 
+  defp translate("57"), do: :database_already_exists
+  defp translate("60"), do: :database_does_not_exists
   defp translate("28000"), do: :invalid_authorization
   defp translate("08" <> _), do: :connection_exception
   defp translate(code), do: code

@@ -26,7 +26,7 @@ defmodule Clickhousex.Mixfile do
     [
       {:db_connection, "~> 1.1"},
       {:httpoison, "~> 1.0"},
-      {:poison, "~> 3.1"}
+      {:poison, ">= 1.0.0"}
     ]
   end
 

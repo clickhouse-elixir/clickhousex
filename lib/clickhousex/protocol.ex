@@ -5,6 +5,7 @@ defmodule Clickhousex.Protocol do
 
   alias Clickhousex.HTTPClient, as: Client
   alias Clickhousex.Helpers
+  alias Clickhousex.Error
 
   defstruct [conn_opts: [], base_address: ""]
 
