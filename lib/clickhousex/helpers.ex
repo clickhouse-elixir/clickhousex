@@ -2,7 +2,7 @@ defmodule Clickhousex.Helpers do
   @moduledoc false
 
   @doc false
-  defp bind_query_params(query, params) do
+  def bind_query_params(query, params) do
     query_parts = String.split(query, "?")
     case length(query_parts) do
       1 ->

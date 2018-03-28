@@ -107,9 +107,9 @@ defmodule Clickhousex.Protocol do
 
   defp do_query(query, params, opts, state) do
     base_address = state.base_address
-    username = state.conn_opts.username
-    password = state.conn_opts.password
-    timeout = state.conn_opts.timeout
+    username = state.conn_opts[:username]
+    password = state.conn_opts[:password]
+    timeout = state.conn_opts[:timeout]
 
     sql_query = query.statement |> IO.iodata_to_binary() |> Helpers.bind_query_params(params)
     res = sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
@@ -124,7 +124,7 @@ defmodule Clickhousex.Protocol do
           :ok,
           %Clickhousex.Result{
             command: :selected,
-            columns: Enum.map(columns, &(to_string(&1))),
+            columns: columns,
             rows: rows,
             num_rows: Enum.count(rows)
           },
@@ -146,7 +146,7 @@ defmodule Clickhousex.Protocol do
           :ok,
           %Clickhousex.Result{
             command: command,
-            columns: Enum.map(columns, &(to_string(&1))),
+            columns: columns,
             rows: rows,
             num_rows: Enum.count(rows)
           },
