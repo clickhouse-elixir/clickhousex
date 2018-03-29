@@ -18,7 +18,7 @@ defmodule Clickhousex.Protocol do
   @spec connect(opts :: Keyword.t) :: {:ok, state} |
                                       {:error, Exception.t}
   def connect(opts) do
-    driver = opts[:driver] || "/usr/local/lib/libclickhouseodbc.so"
+    driver = opts[:driver] || System.get_env("CLICKHOUSE_ODBC_DRIVER")
     host = opts[:hostname] || "localhost"
     port = opts[:port] || 8123
     database = opts[:database] || "default"

@@ -27,7 +27,7 @@ defmodule Clickhousex do
     Connect to ClickHouse using ODBC.
     `opts` expects a keyword list with zero or more of:
       * `:driver` - The driver the adapter will use.
-          * default value: `/usr/local/lib/libclickhouseodbc.so`
+          * default value: value of environment variable `CLICKHOUSE_ODBC_DRIVER`
       * `:hostname` - The server hostname.
           * default value: localhost
       * `:port` - The server port number.
