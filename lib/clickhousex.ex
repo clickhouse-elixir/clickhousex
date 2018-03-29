@@ -24,7 +24,7 @@ defmodule Clickhousex do
   ### PUBLIC API ###
 
   @doc """
-    Connect to ClickHouse using ODBC.
+    Connect to ClickHouse.
     `opts` expects a keyword list with zero or more of:
       * `:scheme` - Scheme (:http | :https).
           * default value: :http
@@ -32,8 +32,6 @@ defmodule Clickhousex do
           * default value: localhost
       * `:port` - The server port number.
           * default value: 8123
-      * `:database` - The name of the database.
-          * default value: `default`
       * `:username` - Username.
           * default value: empty
       * `:password` - User's password.
