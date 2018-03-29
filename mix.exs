@@ -31,7 +31,7 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp description do
-    "ClickHouse driver for Elixir (uses ODBC)."
+    "ClickHouse driver for Elixir (uses HTTP)."
   end
 
   defp maintainers do

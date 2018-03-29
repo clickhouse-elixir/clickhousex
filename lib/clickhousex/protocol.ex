@@ -116,8 +116,8 @@ defmodule Clickhousex.Protocol do
     res = sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
 
     case res do
-      #{:error, %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
-      #  {:disconnect, reason, state}
+      {:error, %Error{code: :connection_exception} = reason} ->
+        {:disconnect, reason, state}
       {:error, reason} ->
         {:error, reason, state}
       {:selected, columns, rows} ->
