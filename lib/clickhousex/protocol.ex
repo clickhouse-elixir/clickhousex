@@ -106,7 +106,7 @@ defmodule Clickhousex.Protocol do
 
   defp do_query(query, params, opts, state) do
     case Clickhousex.ODBC.query(state.pid, query.statement, params, opts) do
-      {:error, %Clickhousex.Error{odbc_code: :connection_exception} = reason} ->
+      {:error, %Clickhousex.Error{code: :connection_exception} = reason} ->
         {:disconnect, reason, state}
       {:error, reason} ->
         {:error, reason, state}
