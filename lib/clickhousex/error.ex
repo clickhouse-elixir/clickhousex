@@ -26,8 +26,10 @@ defmodule Clickhousex.Error do
     end
   end
 
-  defp translate("57"), do: :database_already_exists
-  defp translate("60"), do: :database_does_not_exists
+  defp translate("57"), do: :table_already_exists
+  defp translate("60"), do: :base_table_or_view_not_found
+  defp translate("81"), do: :database_does_not_exists
+  defp translate("82"), do: :database_already_exists
   defp translate("28000"), do: :invalid_authorization
   defp translate("08" <> _), do: :connection_exception
   defp translate(code), do: code
