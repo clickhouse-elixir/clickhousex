@@ -2,4 +2,4 @@
 /deps
 .idea/*
 *.iml
->>>>>>> origin/master
+/doc
