@@ -4,12 +4,12 @@ defmodule Clickhousex.Query do
   """
 
   @type t :: %__MODULE__{
-      ref:            reference | nil,
-      name:           iodata,
-      statement:      iodata,
+      name:      iodata,
+      statement: iodata,
+      columns:   [String.t] | nil
   }
 
-  defstruct [:ref, :name, :statement]
+  defstruct [:name, :statement, :columns]
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
@@ -37,10 +37,6 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 #  end
   def decode(_query, result, _opts) do
     case result.command do
-      :updated ->
-        result
-      :inserted ->
-        result
       :selected ->
         rows = result.rows
         new_rows = Enum.map(rows, fn el ->
@@ -55,6 +51,8 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
           end)
         end)
         Map.put(result, :rows, new_rows)
+      _ ->
+        result
     end
   end
 end
