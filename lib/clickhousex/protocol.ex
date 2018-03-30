@@ -3,61 +3,59 @@ defmodule Clickhousex.Protocol do
 
   use DBConnection
 
-  alias Clickhousex.HTTPClient, as: Client
-  alias Clickhousex.Helpers
-  alias Clickhousex.Error
-
-  defstruct [conn_opts: [], base_address: ""]
+  defstruct [pid: nil, conn_opts: []]
 
   @type state :: %__MODULE__{
-                   conn_opts: Keyword.t,
-                   base_address: string()
+                   pid: pid(),
+                   conn_opts: Keyword.t
                  }
 
   @type query :: Clickhousex.Query.t
   @type result :: Clickhousex.Result.t
   @type cursor :: any
 
-
   @doc false
   @spec connect(opts :: Keyword.t) :: {:ok, state} |
                                       {:error, Exception.t}
   def connect(opts) do
-    scheme = opts[:scheme] || :http
-    hostname = opts[:hostname] || "localhost"
+    driver = opts[:driver] || System.get_env("CLICKHOUSE_ODBC_DRIVER")
+    host = opts[:hostname] || "localhost"
     port = opts[:port] || 8123
     database = opts[:database] || "default"
-    username = opts[:username] || nil
-    password = opts[:password] || nil
+    username = opts[:username] || ""
+    password = opts[:password] || ""
     timeout = opts[:timeout] || Clickhousex.timeout()
 
-    base_address = build_base_address(scheme, hostname, port)
+    conn_str = Enum.reduce([
+      {"DRIVER", driver},
+      {"SERVER", host},
+      {"PORT", port},
+      {"USERNAME", username},
+      {"PASSWORD", password},
+      {"DATABASE", database},
+      {"TIMEOUT", timeout}
+    ], "", fn {key, value}, acc -> acc <> "#{key}=#{value};" end)
 
-    case Client.send("SELECT 1", base_address, timeout, username, password) do
-      {:selected, _, _} ->
+    case Clickhousex.ODBC.start_link(conn_str, opts) do
+      {:ok, pid} ->
         {
           :ok,
           %__MODULE__{
-            conn_opts: [
-              scheme: scheme,
-              hostname: hostname,
-              port: port,
-              database: database,
-              username: username,
-              password: password,
-              timeout: timeout,
-            ],
-            base_address: base_address
+            pid: pid,
+            conn_opts: opts,
           }
         }
-      resp -> resp
+      response -> response
     end
   end
 
   @doc false
   @spec disconnect(err :: Exception.t, state) :: :ok
-  def disconnect(_err, state) do
-    :ok
+  def disconnect(_err, %{pid: pid} = state) do
+    case Clickhousex.ODBC.disconnect(pid) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason, state}
+    end
   end
 
   @doc false
@@ -107,16 +105,8 @@ defmodule Clickhousex.Protocol do
   end
 
   defp do_query(query, params, opts, state) do
-    base_address = state.base_address
-    username = state.conn_opts[:username]
-    password = state.conn_opts[:password]
-    timeout = state.conn_opts[:timeout]
-
-    sql_query = query.statement |> IO.iodata_to_binary() |> Helpers.bind_query_params(params)
-    res = sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
-
-    case res do
-      {:error, %Error{code: :connection_exception} = reason} ->
+    case Clickhousex.ODBC.query(state.pid, query.statement, params, opts) do
+      {:error, %Clickhousex.Error{code: :connection_exception} = reason} ->
         {:disconnect, reason, state}
       {:error, reason} ->
         {:error, reason, state}
@@ -125,7 +115,7 @@ defmodule Clickhousex.Protocol do
           :ok,
           %Clickhousex.Result{
             command: :selected,
-            columns: columns,
+            columns: Enum.map(columns, &(to_string(&1))),
             rows: rows,
             num_rows: Enum.count(rows)
           },
@@ -147,7 +137,7 @@ defmodule Clickhousex.Protocol do
           :ok,
           %Clickhousex.Result{
             command: command,
-            columns: columns,
+            columns: Enum.map(columns, &(to_string(&1))),
             rows: rows,
             num_rows: Enum.count(rows)
           },
@@ -155,10 +145,6 @@ defmodule Clickhousex.Protocol do
         }
     end
   end
-
-  @doc false
-  defp handle_errors({:error, reason}), do: {:error, Error.exception(reason)}
-  defp handle_errors(term), do: term
 
   @doc false
   @spec handle_begin(opts :: Keyword.t, state) :: {:ok, result, state}
@@ -188,12 +174,6 @@ defmodule Clickhousex.Protocol do
   @spec handle_rollback(opts :: Keyword.t, state) :: {:ok, result, state}
   def handle_rollback(opts, state) do
     {:ok, %Clickhousex.Result{}, state}
-  end
-
-  ## Private functions
-
-  defp build_base_address(scheme, hostname, port) do
-    "#{Atom.to_string(scheme)}://#{hostname}:#{port}/"
   end
 
 end
