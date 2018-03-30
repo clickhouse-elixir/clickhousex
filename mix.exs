@@ -7,10 +7,8 @@ defmodule Clickhousex.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       deps: deps(),
-      name: "ClickhousEx",
-      description: description(),
-      maintainers: maintainers(),
-      licenses: ["Apache 2.0"]
+      package: package(),
+      source_url: "https://github.com/appodeal/clickhousex"
     ]
   end
 
@@ -24,7 +22,18 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 1.1"}
+      {:db_connection, "~> 1.1"},
+      {:ex_doc, ">= 0.0.0", only: :dev}
+    ]
+  end
+
+  defp package do
+    [
+      name: "clickhousex",
+      description: description(),
+      maintainers: maintainers(),
+      licenses: ["Apache 2.0"],
+      links: %{"GitHub" => "https://github.com/appodeal/clickhousex"}
     ]
   end
 
