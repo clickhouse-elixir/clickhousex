@@ -4,7 +4,7 @@ defmodule Clickhousex.Mixfile do
   def project do
     [
       app: :clickhousex,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.5",
       deps: deps(),
       package: package(),
@@ -15,7 +15,7 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:logger, :db_connection, :odbc]
+      applications: [:logger, :db_connection, :httpoison]
     ]
   end
 
@@ -23,6 +23,8 @@ defmodule Clickhousex.Mixfile do
   defp deps do
     [
       {:db_connection, "~> 1.1"},
+      {:httpoison, "~> 1.0"},
+      {:poison, ">= 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
@@ -38,7 +40,7 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp description do
-    "ClickHouse driver for Elixir (uses ODBC)."
+    "ClickHouse driver for Elixir (uses HTTP)."
   end
 
   defp maintainers do
