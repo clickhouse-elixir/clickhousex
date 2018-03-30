@@ -8,7 +8,7 @@ defmodule Clickhousex.Mixfile do
       elixir: "~> 1.5",
       deps: deps(),
       package: package(),
-      source_url: "https://github.com/appodeal/clickhousex"
+      source_url: "https://github.com/appodeal/clickhousex/tree/feature/odbc"
     ]
   end
 
@@ -29,16 +29,16 @@ defmodule Clickhousex.Mixfile do
 
   defp package do
     [
-      name: "clickhousex",
+      name: "clickhousex_odbc",
       description: description(),
       maintainers: maintainers(),
       licenses: ["Apache 2.0"],
-      links: %{"GitHub" => "https://github.com/appodeal/clickhousex"}
+      links: %{"GitHub" => "https://github.com/appodeal/clickhousex/tree/feature/odbc"}
     ]
   end
 
   defp description do
-    "ClickHouse driver for Elixir (uses ODBC)."
+    "ClickHouse driver for Elixir which uses ODBC driver for connection."
   end
 
   defp maintainers do
