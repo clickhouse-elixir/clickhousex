@@ -33,7 +33,7 @@ defmodule Clickhousex.Protocol do
 
     base_address = build_base_address(scheme, hostname, port)
 
-    case Client.send("SELECT 1", base_address, timeout, username, password) do
+    case Client.send("SELECT 1", base_address, timeout, username, password, database) do
       {:selected, _, _} ->
         {
           :ok,
@@ -111,9 +111,10 @@ defmodule Clickhousex.Protocol do
     username = state.conn_opts[:username]
     password = state.conn_opts[:password]
     timeout = state.conn_opts[:timeout]
+    database = state.conn_opts[:database]
 
     sql_query = query.statement |> IO.iodata_to_binary() |> Helpers.bind_query_params(params)
-    res = sql_query |> Client.send(base_address, timeout, username, password) |> handle_errors()
+    res = sql_query |> Client.send(base_address, timeout, username, password, database) |> handle_errors()
 
     case res do
       {:error, %Error{code: :connection_exception} = reason} ->

@@ -5,19 +5,20 @@ defmodule Clickhousex.HTTPClient do
 
   @get_method_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
 
-  def send(query, base_address, timeout, username, password) when username != nil do
+  def send(query, base_address, timeout, username, password, database) when username != nil do
     opts = [hackney: [basic_auth: {username, password}]]
-    send_p(query, base_address, timeout, opts)
+    send_p(query, base_address, timeout, database, opts)
   end
 
-  def send(query, base_address, timeout, username, password) when username == nil do
-    send_p(query, base_address, timeout, [])
+  def send(query, base_address, timeout, username, password, database) when username == nil do
+    send_p(query, base_address, timeout, database, [])
   end
 
-  defp send_p(query, base_address, timeout, opts) do
+  defp send_p(query, base_address, timeout, database, opts) do
     {method, command} = query |> parse_method_and_command()
     query_normalized = query |> normalize_query(command)
-    opts_new = opts ++ [params: %{query: query_normalized}]
+    opts_new = opts ++ [params: %{query: query_normalized, database: database}]
+
     res = HTTPoison.request(method, base_address, "", [{"Content-Length", "0"}], opts_new)
     case res do
       {:ok, resp} ->

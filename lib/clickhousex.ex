@@ -30,6 +30,8 @@ defmodule Clickhousex do
           * default value: :http
       * `:hostname` - The server hostname.
           * default value: localhost
+      * `:database` - Database name.
+          * default value: "default"
       * `:port` - The server port number.
           * default value: 8123
       * `:username` - Username.
