@@ -4,7 +4,7 @@ defmodule Clickhousex.Mixfile do
   def project do
     [
       app: :clickhousex,
-      version: "0.2.0",
+      version: "0.2.1",
       elixir: "~> 1.5",
       deps: deps(),
       package: package(),
@@ -44,6 +44,6 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp maintainers do
-    ["Ivan Zinoviev", "Roman Chudov", "Konstantin Grabar", "Evgeniy Shurmin", "Alexey Lukyanov"]
+    ["Roman Chudov", "Konstantin Grabar", "Ivan Zinoviev", "Evgeniy Shurmin", "Alexey Lukyanov"]
   end
 end
