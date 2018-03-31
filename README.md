@@ -22,6 +22,15 @@ Call start_link()/1 function and pass connection options:
 Clickhousex.start_link([scheme: :http, hostname: "localhost", port: 8123, database: "default", username: "user", password: "654321"])
 ```
 
+Options expects a keyword list with zero or more of:
+
+      * `scheme` - Scheme (:http | :https). Default value: :http
+      * `hostname` - The server hostname. Default value: "localhost"
+      * `database` - Database name. Default value: "default"
+      * `port` - The server port number. Default value: 8123
+      * `username` - Username. Default value: nil
+      * `password` - User's password. Default value: nil
+
 ## Queries examples
 
 ```elixir
@@ -38,16 +47,6 @@ iex(2)> Clickhousex.query(pid, "SHOW TABLES", [])
    ["zookeeper"]]}}
 iex(3)>
 ```
-
-Options expects a keyword list with zero or more of:
-
-      * `scheme` - Scheme (:http | :https). Default value: :http
-      * `hostname` - The server hostname. Default value: "localhost"
-      * `database` - Database name. Default value: "default"
-      * `port` - The server port number. Default value: 8123
-      * `username` - Username. Default value: nil
-      * `password` - User's password. Default value: nil
-
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
