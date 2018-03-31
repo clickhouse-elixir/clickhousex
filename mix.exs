@@ -3,7 +3,7 @@ defmodule Clickhousex.Mixfile do
 
   def project do
     [
-      app: :clickhousex,
+      app: :clickhousex_odbc,
       version: "0.2.0",
       elixir: "~> 1.5",
       deps: deps(),
