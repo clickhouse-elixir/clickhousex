@@ -29,7 +29,6 @@ jobs:
           command:  |
             sudo curl https://s3.us-east-2.amazonaws.com/roman.chudov.test/clickhouse/libclickhouseodbc-release-2018-02-01.so > ~/libclickhouseodbc.so
             sudo mv ~/libclickhouseodbc.so /usr/local/lib/clickhouse-odbc.so
-            export CLICKHOUSE_ODBC_DRIVER=/usr/local/lib/clickhouse-odbc.so
 
 
       # specify any bash command here prefixed with `run: `
@@ -37,4 +36,4 @@ jobs:
       - run: mix local.rebar --force
       - run: mix deps.get
       - run: MIX_ENV=test mix compile
-      - run: mix test
+      - run: CLICKHOUSE_ODBC_DRIVER=/usr/local/lib/clickhouse-odbc.so mix test
