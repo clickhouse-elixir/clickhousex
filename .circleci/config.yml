@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Install ODBC driver
           command:  |
-            sudo curl https://s3.amazonaws.com/appodeal-adserver-changelog/libclickhouseodbc.so > ~/libclickhouseodbc.so
+            sudo curl https://s3.us-east-2.amazonaws.com/roman.chudov.test/clickhouse/libclickhouseodbc-release-2018-02-01.so > ~/libclickhouseodbc.so
             sudo mv ~/libclickhouseodbc.so /usr/local/lib/clickhouse-odbc.so
             export CLICKHOUSE_ODBC_DRIVER=/usr/local/lib/clickhouse-odbc.so
 
