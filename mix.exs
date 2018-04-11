@@ -4,7 +4,7 @@ defmodule Clickhousex.Mixfile do
   def project do
     [
       app: :clickhousex,
-      version: "0.2.1",
+      version: "0.2.2",
       elixir: "~> 1.5",
       deps: deps(),
       package: package(),
