@@ -3,7 +3,8 @@ defmodule Clickhousex.HTTPClient do
 
   alias Clickhousex.Types
 
-  @get_method_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
+  @selected_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
+  @req_headers [{"Content-Type", "text/plain"}]
 
   def send(query, base_address, timeout, username, password, database) when username != nil do
     opts = [hackney: [basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
@@ -15,11 +16,11 @@ defmodule Clickhousex.HTTPClient do
   end
 
   defp send_p(query, base_address, database, opts) do
-    {method, command} = query |> parse_method_and_command()
+    command = parse_command(query)
     query_normalized = query |> normalize_query(command)
-    opts_new = opts ++ [params: %{query: query_normalized, database: database}]
+    opts_new = opts ++ [params: %{database: database}]
 
-    res = HTTPoison.request(method, base_address, "", [{"Content-Length", "0"}], opts_new)
+    res = HTTPoison.request(:post, base_address, query_normalized, @req_headers, opts_new)
     case res do
       {:ok, resp} ->
         cond do
@@ -50,10 +51,10 @@ defmodule Clickhousex.HTTPClient do
     end
   end
 
-  defp parse_method_and_command(query) do
+  defp parse_command(query) do
     cond do
-      query =~ @get_method_queries_regex -> {:get, :selected}
-      true -> {:post, :updated}
+      query =~ @selected_queries_regex -> :selected
+      true -> :updated
     end
   end
 
