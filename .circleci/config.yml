@@ -7,6 +7,10 @@ jobs:
     docker:
       # specify the version here
       - image: circleci/elixir:1.5
+      - image: yandex/clickhouse-server
+        ports:
+          - 8123:8123
+          - 9000:9000
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -22,8 +26,7 @@ jobs:
             sudo apt-get install software-properties-common
             sudo apt-add-repository "deb http://repo.yandex.ru/clickhouse/deb/stable/ main/"
             sudo apt-get update
-            sudo apt-get install clickhouse-server-common clickhouse-client --force-yes
-            sudo service clickhouse-server start
+            sudo apt-get install clickhouse-client --force-yes
 
       # specify any bash command here prefixed with `run: `
       - run: mix local.hex --force
