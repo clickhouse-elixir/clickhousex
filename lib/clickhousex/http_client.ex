@@ -33,10 +33,11 @@ defmodule Clickhousex.HTTPClient do
 
       rows =
         for row <- data do
-          for {column_name, column_value} <- row do
-            Types.decode(column_value, column_meta[column_name])
+          for column_name <- columns,
+              column_value = Map.get(row, column_name),
+              column_type = Map.get(column_meta, column_name) do
+            Types.decode(column_value, column_type)
           end
-          |> List.to_tuple()
         end
 
       {command, columns, rows}

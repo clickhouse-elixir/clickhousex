@@ -41,9 +41,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
         rows = result.rows
 
         new_rows =
-          Enum.map(rows, fn el ->
-            list1 = Tuple.to_list(el)
-
+          Enum.map(rows, fn list1 ->
             Enum.map(list1, fn el1 ->
               cond do
                 is_list(el1) ->

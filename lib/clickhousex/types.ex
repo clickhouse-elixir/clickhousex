@@ -3,6 +3,9 @@ defmodule Clickhousex.Types do
 
   def decode(value, type) do
     case type do
+      "Int64" ->
+        String.to_integer(value)
+
       "Date" ->
         case Date.from_iso8601(value) do
           {:ok, date} -> date
