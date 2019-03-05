@@ -4,53 +4,59 @@ defmodule Clickhousex.Query do
   """
 
   @type t :: %__MODULE__{
-      name:      iodata,
-      statement: iodata,
-      columns:   [String.t] | nil
-  }
+          name: iodata,
+          statement: iodata,
+          columns: [String.t()] | nil
+        }
 
   defstruct [:name, :statement, :columns]
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
-  #require IEx
+  # require IEx
 
-  def parse(query, opts) do
+  def parse(query, _opts) do
     query
   end
 
-  def describe(query, opts) do
+  def describe(query, _opts) do
     query
   end
 
-#  @spec encode(query :: Clickhousex.Query.t(), params :: [Clickhousex.Type.param()], opts :: Keyword.t()) ::
-#          [Clickhousex.Type.param()]
-  def encode(query, params, opts) do
-#    Enum.map(params, &(Clickhousex.Type.encode(&1, opts)))
+  #  @spec encode(query :: Clickhousex.Query.t(), params :: [Clickhousex.Type.param()], opts :: Keyword.t()) ::
+  #          [Clickhousex.Type.param()]
+  def encode(_query, params, _opts) do
+    #    Enum.map(params, &(Clickhousex.Type.encode(&1, opts)))
     params
   end
 
-#  @spec decode(query :: Clickhousex.Query.t(), result :: Clickhousex.Result.t(), opts :: Keyword.t()) ::
-#          Clickhousex.Result.t()
-#  def decode(_query, %Clickhousex.Result{rows: rows} = result, opts) when not is_nil(rows) do
-#    Map.put(result, :rows, Enum.map(rows, fn row -> Enum.map(row, &(Clickhousex.Type.decode(&1, opts))) end))
-#  end
+  #  @spec decode(query :: Clickhousex.Query.t(), result :: Clickhousex.Result.t(), opts :: Keyword.t()) ::
+  #          Clickhousex.Result.t()
+  #  def decode(_query, %Clickhousex.Result{rows: rows} = result, opts) when not is_nil(rows) do
+  #    Map.put(result, :rows, Enum.map(rows, fn row -> Enum.map(row, &(Clickhousex.Type.decode(&1, opts))) end))
+  #  end
   def decode(_query, result, _opts) do
     case result.command do
       :selected ->
         rows = result.rows
-        new_rows = Enum.map(rows, fn el ->
-          list1 = Tuple.to_list(el)
-          Enum.map(list1, fn el1 ->
-            cond do
-              is_list(el1) ->
-                to_string(el1)
-              true ->
-                el1
-            end
+
+        new_rows =
+          Enum.map(rows, fn el ->
+            list1 = Tuple.to_list(el)
+
+            Enum.map(list1, fn el1 ->
+              cond do
+                is_list(el1) ->
+                  to_string(el1)
+
+                true ->
+                  el1
+              end
+            end)
           end)
-        end)
+
         Map.put(result, :rows, new_rows)
+
       _ ->
         result
     end

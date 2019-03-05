@@ -57,25 +57,12 @@ defmodule Clickhousex.Helpers do
     to_string(param)
   end
 
-  defp param_as_string({{year, month, day}, {hour, minute, second, _msecond}}) do
-    case Ecto.DateTime.cast({{year, month, day}, {hour, minute, second, 0}}) do
-      {:ok, date_time} ->
-        "'#{Ecto.DateTime.to_string(date_time)}'"
-
-      {:error} ->
-        {:error, %Clickhousex.Error{message: :wrong_date_time}}
-    end
+  defp param_as_string(%DateTime{} = datetime) do
+    DateTime.to_iso8601(datetime)
   end
 
-  defp param_as_string({year, month, day}) do
-    # param_as_string({{year, month, day}, {0, 0, 0, 0}})
-    case Ecto.Date.cast({year, month, day}) do
-      {:ok, date} ->
-        "'#{Ecto.Date.to_string(date)}'"
-
-      {:error} ->
-        {:error, %Clickhousex.Error{message: :wrong_date}}
-    end
+  defp param_as_string(%Date{} = date) do
+    Date.to_iso8601(date)
   end
 
   defp param_as_string(param) do
