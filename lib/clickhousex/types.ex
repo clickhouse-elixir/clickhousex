@@ -3,18 +3,20 @@ defmodule Clickhousex.Types do
 
   def decode(value, type) do
     case type do
-      # TODO: implement!
-      #"Date" ->
-      #  case Date.from_iso8601(to_string(value)) do
-      #    {:ok, date} -> {date.year, date.month, date.day}
-      #    _ -> value
-      #  end
+      "Date" ->
+        case Date.from_iso8601(value) do
+          {:ok, date} -> date
+          _ -> {:error, :not_an_iso8601_date}
+        end
+
       "DateTime" ->
         case DateTime.from_iso8601(value <> "Z") do
-          {:ok, datetime, _} -> {{datetime.year, datetime.month, datetime.day}, {datetime.hour, datetime.minute, datetime.second}}
+          {:ok, datetime, _} -> datetime
           _ -> value
         end
-      _ -> value
+
+      _ ->
+        value
     end
   end
 end
