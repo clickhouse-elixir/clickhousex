@@ -41,7 +41,7 @@ defmodule Clickhousex do
   """
 
   @spec start_link(Keyword.t()) :: {:ok, pid} | {:error, term}
-  def start_link(opts) do
+  def start_link(opts \\ []) do
     DBConnection.start_link(Clickhousex.Protocol, opts)
   end
 
