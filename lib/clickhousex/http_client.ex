@@ -32,7 +32,6 @@ defmodule Clickhousex.HTTPClient do
             value = Map.get(row, column_name)
             Types.decode(value, column_type)
           end
-          |> List.to_tuple()
         end
 
       {command, Enum.map(meta, & &1["name"]), rows}
