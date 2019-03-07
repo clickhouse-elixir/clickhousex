@@ -1,6 +1,15 @@
 defmodule Clickhousex.Types do
   @moduledoc false
 
+  def decode(nil, _) do
+    nil
+  end
+
+  def decode(value, <<"Nullable(", type::binary>>) do
+    type = String.replace_suffix(type, ")", "")
+    decode(value, type)
+  end
+
   def decode(value, type) do
     case type do
       "Int64" ->

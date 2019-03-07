@@ -36,28 +36,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   #    Map.put(result, :rows, Enum.map(rows, fn row -> Enum.map(row, &(Clickhousex.Type.decode(&1, opts))) end))
   #  end
   def decode(_query, result, _opts) do
-    case result.command do
-      :selected ->
-        rows = result.rows
-
-        new_rows =
-          Enum.map(rows, fn list1 ->
-            Enum.map(list1, fn el1 ->
-              cond do
-                is_list(el1) ->
-                  to_string(el1)
-
-                true ->
-                  el1
-              end
-            end)
-          end)
-
-        Map.put(result, :rows, new_rows)
-
-      _ ->
-        result
-    end
+    result
   end
 end
 

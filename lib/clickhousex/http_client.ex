@@ -24,23 +24,18 @@ defmodule Clickhousex.HTTPClient do
            HTTPoison.post(base_address, query_normalized, @req_headers, opts_new),
          {:command, :selected} <- {:command, command},
          {:ok, %{"meta" => meta, "data" => data, "rows" => _rows_count}} <- Jason.decode(body) do
-      columns = Enum.map(meta, & &1["name"])
-
-      column_meta =
-        for %{"name" => column_name, "type" => column_type} <- meta, into: %{} do
-          {column_name, column_type}
-        end
+      columns = Enum.map(meta, &{&1["name"], &1["type"]})
 
       rows =
         for row <- data do
-          for column_name <- columns,
-              column_value = Map.get(row, column_name),
-              column_type = Map.get(column_meta, column_name) do
-            Types.decode(column_value, column_type)
+          for {column_name, column_type} <- columns do
+            value = Map.get(row, column_name)
+            Types.decode(value, column_type)
           end
+          |> List.to_tuple()
         end
 
-      {command, columns, rows}
+      {command, Enum.map(meta, & &1["name"]), rows}
     else
       {:command, :updated} ->
         {:updated, 1}

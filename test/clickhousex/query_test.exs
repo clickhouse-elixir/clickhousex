@@ -35,7 +35,7 @@ defmodule Clickhousex.QueryTest do
              )
 
     assert {:ok, _,
-            %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [["qwerty"]]}} =
+            %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [{"qwerty"}]}} =
              Clickhousex.query(client, "SELECT * FROM query_test.simple_select", [])
   end
 
@@ -62,7 +62,7 @@ defmodule Clickhousex.QueryTest do
               command: :selected,
               columns: ["id", "name"],
               num_rows: 1,
-              rows: [[1, "abyrvalg"]]
+              rows: [{1, "abyrvalg"}]
             }} = Clickhousex.query(client, "SELECT * FROM query_test.parametrized_query", [])
   end
 
@@ -94,7 +94,7 @@ defmodule Clickhousex.QueryTest do
               command: :selected,
               columns: ["id", "name"],
               num_rows: 2,
-              rows: [[1, "abyrvalg"], [2, "stinky"]]
+              rows: [{1, "abyrvalg"}, {2, "stinky"}]
             }} = Clickhousex.query(client, "SELECT * FROM query_test.parametrized_query", [])
   end
 end
