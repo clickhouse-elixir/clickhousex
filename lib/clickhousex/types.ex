@@ -11,24 +11,27 @@ defmodule Clickhousex.Types do
   end
 
   def decode(value, type) do
-    case type do
-      "Int64" ->
-        String.to_integer(value)
+    case {type, value} do
+      {"Float64", val} when is_integer(val) ->
+        1.0 * val
 
-      "Date" ->
-        case Date.from_iso8601(value) do
+      {"Int64", val} ->
+        String.to_integer(val)
+
+      {"Date", val} ->
+        case Date.from_iso8601(val) do
           {:ok, date} -> date
           _ -> {:error, :not_an_iso8601_date}
         end
 
-      "DateTime" ->
-        case DateTime.from_iso8601(value <> "Z") do
+      {"DateTime", val} ->
+        case DateTime.from_iso8601(val <> "Z") do
           {:ok, datetime, _} -> datetime
           _ -> value
         end
 
-      _ ->
-        value
+      {_, val} ->
+        val
     end
   end
 end
