@@ -36,9 +36,9 @@ defmodule Clickhousex.Helpers do
 
   @doc false
   defp param_as_string(param) when is_list(param) do
-    param
-    |> Enum.map(fn p -> param_as_string(p) end)
-    |> Enum.join(",")
+    values = Enum.map_join(param, ",", &param_as_string/1)
+
+    "[" <> values <> "]"
   end
 
   defp param_as_string(param) when is_integer(param) do
@@ -63,6 +63,10 @@ defmodule Clickhousex.Helpers do
 
   defp param_as_string(%Date{} = date) do
     Date.to_iso8601(date)
+  end
+
+  defp param_as_string(nil) do
+    "NULL"
   end
 
   defp param_as_string(param) do
