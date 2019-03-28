@@ -1,7 +1,7 @@
 defmodule Clickhousex.HTTPClient do
   @moduledoc false
 
-  alias Clickhousex.Types
+  @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
 
   @selected_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
   @req_headers [{"Content-Type", "text/plain"}]
@@ -15,26 +15,22 @@ defmodule Clickhousex.HTTPClient do
     send_p(query, base_address, database, opts)
   end
 
-  defp send_p(query, base_address, database, opts) do
-    command = parse_command(query)
-    query_normalized = query |> normalize_query(command)
-    opts_new = opts ++ [params: %{database: database}]
+  defp send_p({query_fragment, params}, base_address, database, opts) do
+    command = parse_command(query_fragment)
+
+    params = maybe_append_format(command, params)
+
+    http_opts =
+      Keyword.put(opts, :params, %{
+        database: database,
+        query: query_fragment
+      })
 
     with {:ok, %{status_code: 200, body: body}} <-
-           HTTPoison.post(base_address, query_normalized, @req_headers, opts_new),
+           HTTPoison.post(base_address, params, @req_headers, http_opts),
          {:command, :selected} <- {:command, command},
-         {:ok, %{"meta" => meta, "data" => data, "rows" => _rows_count}} <- Jason.decode(body) do
-      columns = Enum.map(meta, &{&1["name"], &1["type"]})
-
-      rows =
-        for row <- data do
-          for {column_name, column_type} <- columns do
-            value = Map.get(row, column_name)
-            Types.decode(value, column_type)
-          end
-        end
-
-      {command, Enum.map(meta, & &1["name"]), rows}
+         {:ok, %{column_names: column_names, rows: rows}} <- @codec.decode(body) do
+      {command, column_names, rows}
     else
       {:command, :updated} ->
         {:updated, 1}
@@ -54,12 +50,11 @@ defmodule Clickhousex.HTTPClient do
     end
   end
 
-  defp normalize_query(query, command) do
-    case command do
-      :selected -> query_with_format(query)
-      _ -> query
-    end
+  defp maybe_append_format(:selected, query) do
+    [query, " FORMAT ", @codec.response_format]
   end
 
-  defp query_with_format(query), do: query <> " FORMAT JSON"
+  defp maybe_append_format(_, query) do
+    query
+  end
 end

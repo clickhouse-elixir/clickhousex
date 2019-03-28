@@ -1,44 +1,30 @@
 defmodule Clickhousex.TableStorageTest do
-  use ExUnit.Case, async: true
+  use ClickhouseCase, async: true
 
   alias Clickhousex.Result
 
-  setup_all do
-    {:ok, client} = Clickhousex.start_link([])
-    {:ok, client: client}
+  test "can create and drop table", ctx do
+    create_statement = """
+    CREATE TABLE {{table}} (id Int32) ENGINE = Memory
+    """
+
+    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+    assert {:ok, _, %Result{}} = schema(ctx, "DROP TABLE {{ table }}")
   end
 
-  setup %{client: client} do
-    on_exit(fn ->
-      Clickhousex.query(client, "DROP DATABASE table_storage_test", [])
-    end)
-
-    Clickhousex.query(client, "CREATE DATABASE table_storage_test", [])
-    {:ok, [client: client]}
-  end
-
-  test "can create and drop table", %{client: client} do
-    assert {:ok, _, %Result{}} =
-             Clickhousex.query(
-               client,
-               "CREATE TABLE table_storage_test.can_create_drop(id Int32) ENGINE = Memory",
-               []
-             )
-
-    assert {:ok, _, %Result{}} =
-             Clickhousex.query(client, "DROP TABLE table_storage_test.can_create_drop", [])
-  end
-
-  test "returns correct error when dropping table that doesn't exist", %{client: client} do
+  test "returns correct error when dropping table that doesn't exist", ctx do
     assert {:error, %{code: :base_table_or_view_not_found}} =
-             Clickhousex.query(client, "DROP TABLE table_storage_test.not_exist", [])
+             schema(ctx, "DROP TABLE table_storage_test.not_exist")
   end
 
-  test "returns correct error when creating a table that already exists", %{client: client} do
-    Clickhousex.query(client, "DROP TABLE table_storage_test.table_already_exists", [])
+  test "returns correct error when creating a table that already exists", ctx do
+    create_statement = """
+    CREATE TABLE {{ table }}
+    (id Int32) ENGINE = Memory
+    """
 
-    sql = "CREATE TABLE table_storage_test.table_already_exists(id Int32) ENGINE = Memory"
-    assert {:ok, _, %Result{}} = Clickhousex.query(client, sql, [])
-    assert {:error, %{code: :table_already_exists}} = Clickhousex.query(client, sql, [])
+    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:error, %{code: :table_already_exists}} = schema(ctx, create_statement)
   end
 end

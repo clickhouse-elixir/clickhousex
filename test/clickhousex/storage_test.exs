@@ -1,35 +1,19 @@
 defmodule Clickhousex.StorageTest do
-  use ExUnit.Case, async: true
+  use ClickhouseCase, async: true
 
   alias Clickhousex.Result
 
-  setup_all do
-    {:ok, client} = Clickhousex.start_link([])
-    {:ok, client: client}
+  test "can create and drop database", ctx do
+    assert {:ok, _, %Result{}} = schema(ctx, "CREATE DATABASE other_db")
+    assert {:ok, _, %Result{}} = schema(ctx, "DROP DATABASE other_db")
   end
 
-  setup %{client: client} do
-    on_exit(fn ->
-      Clickhousex.query(client, "DROP DATABASE storage_test", [])
-    end)
-
-    {:ok, [client: client]}
+  test "returns correct error when dropping database that doesn't exist", ctx do
+    assert {:error, %{code: :database_does_not_exists}} = schema(ctx, "DROP DATABASE random_db ")
   end
 
-  test "can create and drop database", %{client: client} do
-    assert {:ok, _, %Result{}} = Clickhousex.query(client, "CREATE DATABASE storage_test", [])
-    assert {:ok, _, %Result{}} = Clickhousex.query(client, "DROP DATABASE storage_test", [])
-  end
-
-  test "returns correct error when dropping database that doesn't exist", %{client: client} do
-    assert {:error, %{code: :database_does_not_exists}} =
-             Clickhousex.query(client, "DROP DATABASE storage_test", [])
-  end
-
-  test "returns correct error when creating a database that already exists", %{client: client} do
-    assert {:ok, _, %Result{}} = Clickhousex.query(client, "CREATE DATABASE storage_test", [])
-
+  test "returns correct error when creating a database that already exists", ctx do
     assert {:error, %{code: :database_already_exists}} =
-             Clickhousex.query(client, "CREATE DATABASE storage_test", [])
+             schema(ctx, "CREATE DATABASE {{database}}")
   end
 end
