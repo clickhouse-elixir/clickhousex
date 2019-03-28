@@ -6,6 +6,7 @@ defmodule Clickhousex.Query do
   @type t :: %__MODULE__{
           name: iodata,
           statement: iodata,
+          type: :select | :insert | :alter | :create | :drop,
           query_fragment: iodata,
           param_count: integer,
           params: iodata | nil,
@@ -13,7 +14,16 @@ defmodule Clickhousex.Query do
           columns: [String.t()] | nil
         }
 
-  defstruct [:name, :statement, :query_fragment, :columns, :params, :substitutions, :param_count]
+  defstruct [
+    :name,
+    :statement,
+    :type,
+    :query_fragment,
+    :columns,
+    :params,
+    :substitutions,
+    :param_count
+  ]
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
@@ -30,10 +40,9 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
       |> String.codepoints()
       |> Enum.count(fn s -> s == "?" end)
 
-    {query_fragment, substitutions} =
-      statement
-      |> query_type()
-      |> do_parse(query)
+    query = %{query | type: query_type(statement)}
+
+    {query_fragment, substitutions} = do_parse(query)
 
     %{
       query
@@ -55,7 +64,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     result
   end
 
-  defp do_parse(:insert, %{statement: statement}) do
+  defp do_parse(%{type: :insert, statement: statement}) do
     with true <- Regex.match?(@values_regex, statement),
          [fragment, substitutions] <- String.split(statement, @values_regex),
          true <- String.contains?(substitutions, "?") do
@@ -66,7 +75,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     end
   end
 
-  defp do_parse(:select, %{statement: statement}) do
+  defp do_parse(%{type: :select, statement: statement}) do
     with [select, substitutions] <- String.split(statement, @where_clause_regex),
          true <- String.contains?(statement, "?") do
       {select, "WHERE " <> substitutions}
@@ -76,7 +85,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     end
   end
 
-  defp do_parse(:alter, %{statement: statement}) do
+  defp do_parse(%{type: :alter, statement: statement}) do
     with [update, substitutions] <- String.split(statement, @update_clause_regex),
          true <- String.contains?(statement, "?") do
       {update, "UPDATE " <> substitutions}
@@ -86,11 +95,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     end
   end
 
-  defp do_parse(:create, %{statement: statement}) do
-    {statement, ""}
-  end
-
-  defp do_parse(_, %{statement: statement}) do
+  defp do_parse(%{statement: statement}) do
     {statement, ""}
   end
 

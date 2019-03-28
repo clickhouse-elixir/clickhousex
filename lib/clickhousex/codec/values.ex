@@ -9,57 +9,63 @@ defmodule Clickhousex.Codec.Values do
     raise ArgumentError, "Extra params! Query doesn't contain '?'"
   end
 
-  def encode(%Query{param_count: param_count, substitutions: substitutions}, params) do
+  def encode(%Query{param_count: param_count, substitutions: substitutions} = query, params) do
     if length(params) != param_count do
       raise ArgumentError,
             "The number of parameters does not correspond to the number of question marks!"
     end
 
-    substitutions
-    |> String.split("?")
-    |> weave(params)
+    query_parts = String.split(substitutions, "?")
+    weave(query, query_parts, params)
   end
 
-  defp weave(query_parts, params) do
-    weave(query_parts, params, [])
+  defp weave(query, query_parts, params) do
+    weave(query, query_parts, params, [])
   end
 
-  defp weave([part], [], acc) do
+  defp weave(_query, [part], [], acc) do
     Enum.reverse([part | acc])
   end
 
-  defp weave([part | parts], [param | params], acc) do
-    weave(parts, params, [encode_param(param), part | acc])
+  defp weave(query, [part | parts], [param | params], acc) do
+    weave(query, parts, params, [encode_param(query, param), part | acc])
   end
 
   @doc false
-  defp encode_param(param) when is_list(param) do
-    values = Enum.map_join(param, ",", &encode_param/1)
+  defp encode_param(query, param) when is_list(param) do
+    values = Enum.map_join(param, ",", &encode_param(query, &1))
 
-    "[" <> values <> "]"
+    case query.type do
+      :select ->
+        # We pass lists to in clauses, and they shouldn't have brackets around them.
+        values
+
+      _ ->
+        "[" <> values <> "]"
+    end
   end
 
-  defp encode_param(param) when is_integer(param) do
+  defp encode_param(_query, param) when is_integer(param) do
     Integer.to_string(param)
   end
 
-  defp encode_param(param) when is_boolean(param) do
+  defp encode_param(_query, param) when is_boolean(param) do
     to_string(param)
   end
 
-  defp encode_param(param) when is_float(param) do
+  defp encode_param(_query, param) when is_float(param) do
     to_string(param)
   end
 
-  defp encode_param(param) when is_float(param) do
+  defp encode_param(_query, param) when is_float(param) do
     to_string(param)
   end
 
-  defp encode_param(nil) do
+  defp encode_param(_query, nil) do
     "NULL"
   end
 
-  defp encode_param(%DateTime{} = datetime) do
+  defp encode_param(_query, %DateTime{} = datetime) do
     iso_date =
       datetime
       |> DateTime.truncate(:second)
@@ -69,7 +75,7 @@ defmodule Clickhousex.Codec.Values do
     "'#{iso_date}'"
   end
 
-  defp encode_param(%NaiveDateTime{} = naive_datetime) do
+  defp encode_param(_query, %NaiveDateTime{} = naive_datetime) do
     naive =
       naive_datetime
       |> NaiveDateTime.truncate(:second)
@@ -78,11 +84,11 @@ defmodule Clickhousex.Codec.Values do
     "'#{naive}'"
   end
 
-  defp encode_param(%Date{} = date) do
+  defp encode_param(_query, %Date{} = date) do
     "'#{Date.to_iso8601(date)}'"
   end
 
-  defp encode_param(param) do
+  defp encode_param(_query, param) do
     "'" <> escape(param) <> "'"
   end
 

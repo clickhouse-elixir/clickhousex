@@ -211,6 +211,27 @@ defmodule Clickhousex.QueryTest do
     assert row == {"foo@bar.com"}
   end
 
+  test "selecting with in", ctx do
+    create_statement = """
+    CREATE TABLE {{table}} (
+      id Int64,
+      name String,
+      email String
+    ) ENGINE = Memory
+    """
+
+    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [1, "foobie", "foo@bar.com"])
+
+    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
+
+    assert {:ok, _, %{rows: [{"foo@bar.com"}, {"bar@bar.com"}]}} =
+             select(ctx, "SELECT email FROM {{table}} WHERE id IN (?)", [[1, 2]])
+  end
+
   test "updating rows via alter", ctx do
     create_statement = """
     CREATE TABLE {{table}} (
