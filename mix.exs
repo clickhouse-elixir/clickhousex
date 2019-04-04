@@ -22,10 +22,11 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 1.1"},
-      {:httpoison, "~> 1.0"},
-      {:poison, ">= 1.0.0"},
-      {:ex_doc, "~> 0.19", only: :dev}
+      {:db_connection, "~> 2.0.0"},
+      {:httpoison, "~> 1.5"},
+      {:jason, "~> 1.1.2"},
+      {:ex_doc, "~> 0.19", only: :dev},
+      {:benchee, "~> 0.14.0", only: [:dev, :test]}
     ]
   end
 

@@ -6,13 +6,13 @@ defmodule Clickhousex.HTTPClient do
   @selected_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
   @req_headers [{"Content-Type", "text/plain"}]
 
-  def send(query, base_address, timeout, username, password, database) when username != nil do
-    opts = [hackney: [basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
-    send_p(query, base_address, database, opts)
+  def send(query, base_address, timeout, nil, _password, database) do
+    send_p(query, base_address, database, timeout: timeout, recv_timeout: timeout)
   end
 
-  def send(query, base_address, timeout, username, password, database) when username == nil do
-    send_p(query, base_address, database, [timeout: timeout, recv_timeout: timeout])
+  def send(query, base_address, timeout, username, password, database) do
+    opts = [hackney: [basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
+    send_p(query, base_address, database, opts)
   end
 
   defp send_p(query, base_address, database, opts) do
@@ -20,32 +20,29 @@ defmodule Clickhousex.HTTPClient do
     query_normalized = query |> normalize_query(command)
     opts_new = opts ++ [params: %{database: database}]
 
-    res = HTTPoison.request(:post, base_address, query_normalized, @req_headers, opts_new)
-    case res do
-      {:ok, resp} ->
-        cond do
-          resp.status_code == 200 ->
-            case command do
-              :selected ->
-                case Poison.decode(resp.body) do
-                  {:ok, %{"meta" => meta, "data" => data, "rows" => _rows_count}} ->
-                    columns = meta |> Enum.map(fn(%{"name" => name, "type" => _type}) -> name end)
-                    rows = data |> Enum.map(fn(data_row) ->
-                      meta
-                      |> Enum.map(fn(%{"name" => column, "type" => column_type}) ->
-                        Types.decode(data_row[column], column_type)
-                      end)
-                      |> List.to_tuple()
-                    end)
-                    {command, columns, rows}
-                  {:error, reason} -> {:error, reason}
-                end
-              :updated ->
-                {:updated, 1}
-            end
-          true ->
-            {:error, resp.body}
+    with {:ok, %{status_code: 200, body: body}} <-
+           HTTPoison.post(base_address, query_normalized, @req_headers, opts_new),
+         {:command, :selected} <- {:command, command},
+         {:ok, %{"meta" => meta, "data" => data, "rows" => _rows_count}} <- Jason.decode(body) do
+      columns = Enum.map(meta, &{&1["name"], &1["type"]})
+
+      rows =
+        for row <- data do
+          for {column_name, column_type} <- columns do
+            value = Map.get(row, column_name)
+            Types.decode(value, column_type)
+          end
+          |> List.to_tuple()
         end
+
+      {command, Enum.map(meta, & &1["name"]), rows}
+    else
+      {:command, :updated} ->
+        {:updated, 1}
+
+      {:ok, response} ->
+        {:error, response.body}
+
       {:error, error} ->
         {:error, error.reason}
     end

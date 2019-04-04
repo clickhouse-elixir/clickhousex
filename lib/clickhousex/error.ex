@@ -3,13 +3,13 @@ defmodule Clickhousex.Error do
   Defines an error returned from the client.
   """
 
-  defexception [message: "", code: 0, constraint_violations: []]
+  defexception message: "", code: 0, constraint_violations: []
 
   @type t :: %__MODULE__{
-               message: binary(),
-               code: integer(),
-               constraint_violations: Keyword.t
-             }
+          message: binary(),
+          code: integer(),
+          constraint_violations: Keyword.t()
+        }
 
   def exception(message) do
     %__MODULE__{
@@ -34,7 +34,7 @@ defmodule Clickhousex.Error do
   defp translate("08" <> _), do: :connection_exception
   defp translate(code), do: code
 
-  defp get_constraint_violations(reason) do
+  defp get_constraint_violations(_reason) do
     []
   end
 end
