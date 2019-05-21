@@ -166,6 +166,58 @@ defmodule Clickhousex.QueryTest do
     assert row == {1, [1, 2, 3]}
   end
 
+  test "nested", ctx do
+    create_statement = """
+    CREATE TABLE {{table}} (
+    id UInt64,
+    fields Nested (
+      label String,
+      count UInt64
+      )
+    ) Engine = Memory
+    """
+
+    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+             insert(
+               ctx,
+               "INSERT INTO {{table}} (id, fields.label, fields.count) VALUES (?, ?, ?)",
+               [
+                 32,
+                 ["label_1", "label_2", "label_3"],
+                 [6, 9, 42]
+               ]
+             )
+
+    assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
+    assert row == {32, ~w(label_1 label_2 label_3), [6, 9, 42]}
+
+    assert {:ok, _, %Result{rows: [label_1, label_2, label_3]}} =
+             select(ctx, "SELECT * from {{table}} ARRAY JOIN fields where id = 32", [])
+
+    assert {32, "label_1", 6} == label_1
+    assert {32, "label_2", 9} == label_2
+    assert {32, "label_3", 42} == label_3
+  end
+
+  test "nullable arrays", ctx do
+    create_statement = """
+    CREATE TABLE {{table}} (
+     id UInt64,
+     nullable_value Array(Nullable(UInt64))
+    ) Engine = Memory
+    """
+
+    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [1, [1, nil, 2, nil]])
+
+    assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
+    assert row == {1, [1, nil, 2, nil]}
+  end
+
   test "queries that insert more than one row", ctx do
     create_statement = """
     CREATE TABLE {{table}} (

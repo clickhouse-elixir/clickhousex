@@ -49,8 +49,12 @@ defmodule Clickhousex.Codec.Values do
     Integer.to_string(param)
   end
 
-  defp encode_param(_query, param) when is_boolean(param) do
-    to_string(param)
+  defp encode_param(_query, true) do
+    1
+  end
+
+  defp encode_param(_query, false) do
+    0
   end
 
   defp encode_param(_query, param) when is_float(param) do

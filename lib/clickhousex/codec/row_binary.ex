@@ -75,70 +75,77 @@ defmodule Clickhousex.Codec.RowBinary do
     {:ok, row_tuple, bytes}
   end
 
-  defp decode_row(<<1, rest::binary>>, [[:nullable, _] | types], row) do
+  defp decode_row(<<1, rest::binary>>, [{:nullable, _} | types], row) do
     decode_row(rest, types, [nil | row])
   end
 
-  defp decode_row(<<0, rest::binary>>, [[:nullable, actual_type] | types], row) do
-    decode_row(rest, [[actual_type] | types], row)
+  defp decode_row(<<0, rest::binary>>, [{:nullable, actual_type} | types], row) do
+    decode_row(rest, [actual_type | types], row)
   end
 
-  defp decode_row(bytes, [[:fixed_string, length] | types], row) do
+  defp decode_row(bytes, [{:fixed_string, length} | types], row) do
     <<value::binary-size(length), rest::binary>> = bytes
     decode_row(rest, types, [value | row])
   end
 
-  defp decode_row(bytes, [[:array, elem_type] | types], row) do
+  defp decode_row(bytes, [{:array, elem_type} | types], row) do
     {:ok, value, rest} = Binary.decode(bytes, {:list, elem_type})
     decode_row(rest, types, [value | row])
   end
 
-  defp decode_row(bytes, [[type] | types], row) do
+  defp decode_row(bytes, [type | types], row) do
     {:ok, value, rest} = Binary.decode(bytes, type)
     decode_row(rest, types, [value | row])
   end
 
-  defp to_type(val) do
-    val
-    |> to_type([])
-    |> Enum.reverse()
+  defp to_type(<<"Nullable(", type::binary>>) do
+    rest_type =
+      type
+      |> String.replace_suffix(")", "")
+      |> to_type()
+
+    {:nullable, rest_type}
   end
 
-  defp to_type(<<"Nullable(", type::binary>>, acc) do
-    to_type(String.replace_suffix(type, ")", ""), [:nullable | acc])
-  end
-
-  defp to_type(<<"FixedString(", rest::binary>>, acc) do
+  defp to_type(<<"FixedString(", rest::binary>>) do
     case Integer.parse(rest) do
       {length, rest} ->
         rest
         |> String.replace_suffix(")", "")
-        |> to_type([length, :fixed_string | acc])
+
+        {:fixed_string, length}
     end
   end
 
-  defp to_type(<<"Array(", type::binary>>, acc) do
-    to_type(String.replace_suffix(type, ")", ""), [:array | acc])
+  defp to_type(<<"Array(", type::binary>>) do
+    rest_type =
+      type
+      |> String.replace_suffix(")", "")
+      |> to_type()
+
+    {:array, rest_type}
   end
 
-  defp to_type(raw_type, acc) do
-    case raw_type do
-      "Int64" -> [:i64 | acc]
-      "Int32" -> [:i32 | acc]
-      "Int16" -> [:i16 | acc]
-      "Int8" -> [:i8 | acc]
-      "UInt64" -> [:u64 | acc]
-      "UInt32" -> [:u32 | acc]
-      "UInt16" -> [:u16 | acc]
-      "UInt8" -> [:u8 | acc]
-      "Float64" -> [:f64 | acc]
-      "Float32" -> [:f32 | acc]
-      "Float16" -> [:f16 | acc]
-      "Float8" -> [:f8 | acc]
-      "String" -> [:string | acc]
-      "Date" -> [:date | acc]
-      "DateTime" -> [:datetime | acc]
-      "" -> acc
+  @clickhouse_mappings [
+    {"Int64", :i64},
+    {"Int32", :i32},
+    {"Int16", :i16},
+    {"Int8", :i8},
+    {"UInt64", :u64},
+    {"UInt32", :u32},
+    {"UInt16", :u16},
+    {"UInt8", :u8},
+    {"Float64", :f64},
+    {"Float32", :f32},
+    {"Float16", :f16},
+    {"Float8", :f8},
+    {"String", :string},
+    {"Date", :date},
+    {"DateTime", :datetime}
+  ]
+  for {clickhouse_type, local_type} <- @clickhouse_mappings do
+    defp to_type(unquote(clickhouse_type)) do
+      unquote(local_type)
     end
   end
 end
