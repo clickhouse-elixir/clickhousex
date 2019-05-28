@@ -1,9 +1,9 @@
 defmodule Clickhousex.HTTPClient do
+  alias Clickhousex.Query
   @moduledoc false
 
   @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
 
-  @selected_queries_regex ~r/^(SELECT|SHOW|DESCRIBE|EXISTS)/i
   @req_headers [{"Content-Type", "text/plain"}]
 
   def send(query, base_address, timeout, nil, _password, database) do
@@ -15,19 +15,26 @@ defmodule Clickhousex.HTTPClient do
     send_p(query, base_address, database, opts)
   end
 
-  defp send_p({query_fragment, params}, base_address, database, opts) do
-    command = parse_command(query_fragment)
+  defp send_p(query, base_address, database, opts) do
+    command = parse_command(query)
 
-    params = maybe_append_format(command, params)
+    post_body =
+      case query.type do
+        :select ->
+          [query.post_body_part, " FORMAT ", @codec.response_format]
+
+        _ ->
+          [query.post_body_part]
+      end
 
     http_opts =
       Keyword.put(opts, :params, %{
         database: database,
-        query: query_fragment
+        query: IO.iodata_to_binary(query.query_part)
       })
 
     with {:ok, %{status_code: 200, body: body}} <-
-           HTTPoison.post(base_address, params, @req_headers, http_opts),
+           HTTPoison.post(base_address, post_body, @req_headers, http_opts),
          {:command, :selected} <- {:command, command},
          {:ok, %{column_names: column_names, rows: rows}} <- @codec.decode(body) do
       {command, column_names, rows}
@@ -43,18 +50,11 @@ defmodule Clickhousex.HTTPClient do
     end
   end
 
-  defp parse_command(query) do
-    cond do
-      query =~ @selected_queries_regex -> :selected
-      true -> :updated
-    end
+  defp parse_command(%Query{type: :select}) do
+    :selected
   end
 
-  defp maybe_append_format(:selected, query) do
-    [query, " FORMAT ", @codec.response_format]
-  end
-
-  defp maybe_append_format(_, query) do
-    query
+  defp parse_command(_) do
+    :updated
   end
 end

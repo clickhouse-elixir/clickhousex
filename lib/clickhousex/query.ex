@@ -5,32 +5,32 @@ defmodule Clickhousex.Query do
 
   @type t :: %__MODULE__{
           name: iodata,
-          statement: iodata,
           type: :select | :insert | :alter | :create | :drop,
-          query_fragment: iodata,
+          query_part: iodata,
+          post_body_part: iodata,
           param_count: integer,
           params: iodata | nil,
-          substitutions: String.t(),
           columns: [String.t()] | nil
         }
 
-  defstruct [
-    :name,
-    :statement,
-    :type,
-    :query_fragment,
-    :columns,
-    :params,
-    :substitutions,
-    :param_count
-  ]
+  defstruct name: nil,
+            statement: "",
+            type: :select,
+            params: [],
+            param_count: 0,
+            post_body_part: "",
+            query_part: "",
+            columns: []
+
+  def new(statement) do
+    %__MODULE__{statement: statement, post_body_part: ""}
+    |> DBConnection.Query.parse([])
+  end
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
   @values_regex ~r/VALUES/i
   @query_type_regex ~r/^(\w*).*/
-  @where_clause_regex ~r/WHERE/i
-  @update_clause_regex ~r/UPDATE/i
 
   @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
 
@@ -42,14 +42,9 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
     query = %{query | type: query_type(statement)}
 
-    {query_fragment, substitutions} = do_parse(query)
+    {query_part, post_body_part} = do_parse(query)
 
-    %{
-      query
-      | query_fragment: query_fragment,
-        param_count: param_count,
-        substitutions: substitutions
-    }
+    %{query | param_count: param_count, query_part: query_part, post_body_part: post_body_part}
   end
 
   def describe(query, _opts) do
@@ -76,23 +71,11 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp do_parse(%{type: :select, statement: statement}) do
-    with [select, substitutions] <- String.split(statement, @where_clause_regex),
-         true <- String.contains?(statement, "?") do
-      {select, "WHERE " <> substitutions}
-    else
-      _ ->
-        {statement, ""}
-    end
+    {statement, ""}
   end
 
   defp do_parse(%{type: :alter, statement: statement}) do
-    with [update, substitutions] <- String.split(statement, @update_clause_regex),
-         true <- String.contains?(statement, "?") do
-      {update, "UPDATE " <> substitutions}
-    else
-      _ ->
-        {statement, ""}
-    end
+    {statement, ""}
   end
 
   defp do_parse(%{statement: statement}) do

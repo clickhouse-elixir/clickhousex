@@ -42,6 +42,7 @@ defmodule Clickhousex do
 
   @spec start_link(Keyword.t()) :: {:ok, pid} | {:error, term}
   def start_link(opts \\ []) do
+    opts = Keyword.put(opts, :show_sensitive_data_on_connection_error, true)
     DBConnection.start_link(Clickhousex.Protocol, opts)
   end
 

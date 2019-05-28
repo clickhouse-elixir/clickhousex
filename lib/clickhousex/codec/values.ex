@@ -1,22 +1,39 @@
 defmodule Clickhousex.Codec.Values do
   alias Clickhousex.Query
 
-  def encode(%Query{param_count: 0}, []) do
-    ""
+  def encode(%Query{param_count: 0} = query, []) do
+    %{query | query_part: query.statement}
   end
 
   def encode(%Query{param_count: 0}, _) do
     raise ArgumentError, "Extra params! Query doesn't contain '?'"
   end
 
-  def encode(%Query{param_count: param_count, substitutions: substitutions} = query, params) do
+  def encode(
+        %Query{type: :insert, post_body_part: post_body, param_count: param_count} = query,
+        params
+      ) do
+    validate_param_count(params, param_count)
+    query_parts = String.split(post_body, "?")
+
+    %{query | post_body_part: weave(query, query_parts, params)}
+  end
+
+  def encode(
+        %Query{param_count: param_count, statement: statement} = query,
+        params
+      ) do
+    validate_param_count(params, param_count)
+    query_parts = String.split(statement, "?")
+
+    %{query | query_part: weave(query, query_parts, params), post_body_part: ""}
+  end
+
+  defp validate_param_count(params, param_count) do
     if length(params) != param_count do
       raise ArgumentError,
             "The number of parameters does not correspond to the number of question marks!"
     end
-
-    query_parts = String.split(substitutions, "?")
-    weave(query, query_parts, params)
   end
 
   defp weave(query, query_parts, params) do

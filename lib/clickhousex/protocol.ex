@@ -4,6 +4,7 @@ defmodule Clickhousex.Protocol do
   use DBConnection
 
   alias Clickhousex.HTTPClient, as: Client
+  alias Clickhousex.Query
   alias Clickhousex.Error
 
   defstruct conn_opts: [], base_address: ""
@@ -32,7 +33,12 @@ defmodule Clickhousex.Protocol do
 
     base_address = build_base_address(scheme, hostname, port)
 
-    case Client.send({"SELECT 1", ""}, base_address, timeout, username, password, database) do
+    query =
+      "SELECT 1"
+      |> Query.new()
+      |> DBConnection.Query.encode([], [])
+
+    case Client.send(query, base_address, timeout, username, password, database) do
       {:selected, _, _} ->
         {
           :ok,
@@ -66,7 +72,7 @@ defmodule Clickhousex.Protocol do
           {:ok, state}
           | {:disconnect, term, state}
   def ping(state) do
-    query = %Clickhousex.Query{name: "ping", statement: "SELECT 1", query_fragment: "SELECT 1"}
+    query = %Clickhousex.Query{name: "ping", query_part: "SELECT 1"}
 
     case do_query(query, [], [], state) do
       {:ok, _, _, new_state} -> {:ok, new_state}
@@ -120,8 +126,10 @@ defmodule Clickhousex.Protocol do
     timeout = state.conn_opts[:timeout]
     database = state.conn_opts[:database]
 
+    IO.inspect(params, label: "query params in protocol")
+
     res =
-      {query.query_fragment, params}
+      params
       |> Client.send(base_address, timeout, username, password, database)
       |> handle_errors()
 
