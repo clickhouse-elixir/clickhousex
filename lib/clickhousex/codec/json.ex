@@ -1,7 +1,7 @@
 defmodule Clickhousex.Codec.JSON do
   @behaviour Clickhousex.Codec
 
-  defdelegate encode(query, params), to: Clickhousex.Codec.Values
+  defdelegate encode(query, replacements, params), to: Clickhousex.Codec.Values
 
   @impl Clickhousex.Codec
   def request_format do

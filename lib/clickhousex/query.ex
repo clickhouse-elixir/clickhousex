@@ -6,8 +6,6 @@ defmodule Clickhousex.Query do
   @type t :: %__MODULE__{
           name: iodata,
           type: :select | :insert | :alter | :create | :drop,
-          query_part: iodata,
-          post_body_part: iodata,
           param_count: integer,
           params: iodata | nil,
           columns: [String.t()] | nil
@@ -18,19 +16,21 @@ defmodule Clickhousex.Query do
             type: :select,
             params: [],
             param_count: 0,
-            post_body_part: "",
-            query_part: "",
             columns: []
 
   def new(statement) do
-    %__MODULE__{statement: statement, post_body_part: ""}
+    %__MODULE__{statement: statement}
     |> DBConnection.Query.parse([])
   end
 end
 
 defimpl DBConnection.Query, for: Clickhousex.Query do
+  alias Clickhousex.HTTPRequest
+
   @values_regex ~r/VALUES/i
-  @query_type_regex ~r/^(\w*).*/
+  @select_query_regex ~r/\bSELECT\b/i
+  @insert_query_regex ~r/\bINSERT\b/i
+  @alter_query_regex ~r/\bALTER\b/i
 
   @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
 
@@ -42,17 +42,28 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
     query = %{query | type: query_type(statement)}
 
-    {query_part, post_body_part} = do_parse(query)
-
-    %{query | param_count: param_count, query_part: query_part, post_body_part: post_body_part}
+    %{query | param_count: param_count}
   end
 
   def describe(query, _opts) do
     query
   end
 
+  def encode(%{type: :insert} = query, params, _opts) do
+    {query_part, post_body_part} = do_parse(query)
+    encoded_params = @codec.encode(query, post_body_part, params)
+
+    HTTPRequest.new()
+    |> HTTPRequest.with_query_string_data(query_part)
+    |> HTTPRequest.with_post_data(encoded_params)
+  end
+
   def encode(query, params, _opts) do
-    @codec.encode(query, params)
+    {query_part, _post_body_part} = do_parse(query)
+    encoded_params = @codec.encode(query, query_part, params)
+
+    HTTPRequest.new()
+    |> HTTPRequest.with_query_string_data(encoded_params)
   end
 
   def decode(_query, result, _opts) do
@@ -70,25 +81,18 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     end
   end
 
-  defp do_parse(%{type: :select, statement: statement}) do
-    {statement, ""}
-  end
-
-  defp do_parse(%{type: :alter, statement: statement}) do
-    {statement, ""}
-  end
-
   defp do_parse(%{statement: statement}) do
     {statement, ""}
   end
 
   defp query_type(statement) do
-    case Regex.run(@query_type_regex, statement, capture: :all_but_first) do
-      [type] ->
-        type |> String.downcase() |> String.to_atom()
-
-      _ ->
-        :unknown
+    with {:select, false} <- {:select, Regex.match?(@select_query_regex, statement)},
+         {:insert, false} <- {:insert, Regex.match?(@insert_query_regex, statement)},
+         {:alter, false} <- {:alter, Regex.match?(@alter_query_regex, statement)} do
+      :unknown
+    else
+      {statement_type, true} ->
+        statement_type
     end
   end
 end

@@ -14,14 +14,14 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   @impl Codec
-  def encode(query, params) do
+  def encode(query, replacements, params) do
     params =
       Enum.map(params, fn
         %DateTime{} = dt -> DateTime.to_unix(dt)
         other -> other
       end)
 
-    Clickhousex.Codec.Values.encode(query, params)
+    Clickhousex.Codec.Values.encode(query, replacements, params)
   end
 
   @impl Codec

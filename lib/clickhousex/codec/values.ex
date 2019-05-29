@@ -1,39 +1,30 @@
 defmodule Clickhousex.Codec.Values do
   alias Clickhousex.Query
 
-  def encode(%Query{param_count: 0} = query, []) do
-    %{query | query_part: query.statement}
+  def encode(%Query{param_count: 0, type: :insert}, _, []) do
+    # An insert query's arguments go into the post body and the query part goes into the query string.
+    # If we don't have any arguments, we don't have to encode anything, but we don't want to return
+    # anything here because we'll duplicate the query into both the query string and post body
+    ""
   end
 
-  def encode(%Query{param_count: 0}, _) do
+  def encode(%Query{param_count: 0, statement: statement}, _, []) do
+    statement
+  end
+
+  def encode(%Query{param_count: 0}, _, _) do
     raise ArgumentError, "Extra params! Query doesn't contain '?'"
   end
 
-  def encode(
-        %Query{type: :insert, post_body_part: post_body, param_count: param_count} = query,
-        params
-      ) do
-    validate_param_count(params, param_count)
-    query_parts = String.split(post_body, "?")
-
-    %{query | post_body_part: weave(query, query_parts, params)}
-  end
-
-  def encode(
-        %Query{param_count: param_count, statement: statement} = query,
-        params
-      ) do
-    validate_param_count(params, param_count)
-    query_parts = String.split(statement, "?")
-
-    %{query | query_part: weave(query, query_parts, params), post_body_part: ""}
-  end
-
-  defp validate_param_count(params, param_count) do
+  def encode(%Query{param_count: param_count} = query, query_text, params) do
     if length(params) != param_count do
       raise ArgumentError,
             "The number of parameters does not correspond to the number of question marks!"
     end
+
+    query_parts = String.split(query_text, "?")
+
+    weave(query, query_parts, params)
   end
 
   defp weave(query, query_parts, params) do
@@ -67,11 +58,11 @@ defmodule Clickhousex.Codec.Values do
   end
 
   defp encode_param(_query, true) do
-    1
+    "1"
   end
 
   defp encode_param(_query, false) do
-    0
+    "0"
   end
 
   defp encode_param(_query, param) when is_float(param) do

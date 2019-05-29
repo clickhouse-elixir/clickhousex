@@ -6,31 +6,31 @@ defmodule Clickhousex.HTTPClient do
 
   @req_headers [{"Content-Type", "text/plain"}]
 
-  def send(query, base_address, timeout, nil, _password, database) do
-    send_p(query, base_address, database, timeout: timeout, recv_timeout: timeout)
+  def send(query, request, base_address, timeout, nil, _password, database) do
+    send_p(query, request, base_address, database, timeout: timeout, recv_timeout: timeout)
   end
 
-  def send(query, base_address, timeout, username, password, database) do
+  def send(query, request, base_address, timeout, username, password, database) do
     opts = [hackney: [basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
-    send_p(query, base_address, database, opts)
+    send_p(query, request, base_address, database, opts)
   end
 
-  defp send_p(query, base_address, database, opts) do
+  defp send_p(query, request, base_address, database, opts) do
     command = parse_command(query)
 
     post_body =
       case query.type do
         :select ->
-          [query.post_body_part, " FORMAT ", @codec.response_format]
+          [request.post_data, " FORMAT ", @codec.response_format]
 
         _ ->
-          [query.post_body_part]
+          [request.post_data]
       end
 
     http_opts =
       Keyword.put(opts, :params, %{
         database: database,
-        query: IO.iodata_to_binary(query.query_part)
+        query: IO.iodata_to_binary(request.query_string_data)
       })
 
     with {:ok, %{status_code: 200, body: body}} <-
