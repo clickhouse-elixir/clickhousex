@@ -58,13 +58,13 @@ Benchee.run(%{
   end,
   "Insert nullable null" => fn ->
     insert.("nullable_u64_val", nil)
+  end,
+  "Insert date" => fn ->
+    insert.("date_val", date)
+  end,
+  "Insert datetime" => fn ->
+    insert.("datetime_val", date_time)
   end
-  # "Insert date" => fn ->
-  #   {:ok, _, _} = CH.query(client, "INSERT INTO #{table} (date_val) VALUES (?)", [date])
-  # end,
-  # "Insert datetime" => fn ->
-  #   {:ok, _, _} = CH.query(client, "INSERT INTO #{table} (datetime_val) VALUES (?)", [date_time])
-  # end
 })
 
 Benchee.run(%{
@@ -73,6 +73,13 @@ Benchee.run(%{
   end,
   "Select strings" => fn ->
     select.("string_val", "5050505050")
+  end,
+  "selecting nulls" => fn ->
+    select.("nullable_u64_val", nil)
+  end,
+  "selecting non null" => fn ->
+    {:ok, _, _} =
+      CH.query(client, "SELECT * from #{table} WHERE nullable_u64_val IS NOT NULL", [])
   end,
   "selecting all" => fn ->
     {:ok, _, _} = CH.query(client, "SELECT * from #{table}", [])
