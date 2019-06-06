@@ -48,15 +48,15 @@ defmodule Clickhousex.Codec.Binary do
     encode(:u8, 0)
   end
 
+  def decode(bytes, :struct, struct_module) do
+    decode_struct(bytes, struct_module.decode_spec(), struct(struct_module))
+  end
+
   def decode(bytes, {:nullable, type}) do
     case decode(bytes, :u8) do
       {:ok, 0, rest} -> decode(rest, type)
       {:ok, 1, rest} -> {:ok, nil, rest}
     end
-  end
-
-  def decode(bytes, :struct, struct_module) do
-    decode_struct(bytes, struct_module.decode_spec(), struct(struct_module))
   end
 
   def decode(bytes, :varint) do
