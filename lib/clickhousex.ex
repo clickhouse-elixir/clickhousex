@@ -53,13 +53,13 @@ defmodule Clickhousex do
 
   @spec query(DBConnection.conn(), binary(), list, Keyword.t()) ::
           {:ok, iodata(), Clickhousex.Result.t()}
-  def query(conn, statement, params, opts \\ []) do
+  def query(conn, statement, params \\ [], opts \\ []) do
     DBConnection.prepare_execute(conn, %Query{name: "", statement: statement}, params, opts)
   end
 
   @spec query!(DBConnection.conn(), binary(), list, Keyword.t()) ::
           {iodata(), Clickhousex.Result.t()}
-  def query!(conn, statement, params, opts \\ []) do
+  def query!(conn, statement, params \\ [], opts \\ []) do
     DBConnection.prepare_execute!(conn, %Query{name: "", statement: statement}, params, opts)
   end
 

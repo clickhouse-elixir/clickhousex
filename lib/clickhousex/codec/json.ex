@@ -1,19 +1,30 @@
 defmodule Clickhousex.Codec.JSON do
-  @behaviour Clickhousex.Codec
+  alias Clickhousex.Codec
+  @behaviour Codec
 
-  defdelegate encode(query, replacements, params), to: Clickhousex.Codec.Values
+  defdelegate encode(query, replacements, params), to: Codec.Values
 
-  @impl Clickhousex.Codec
+  @impl Codec
   def request_format do
     "Values"
   end
 
-  @impl Clickhousex.Codec
+  @impl Codec
   def response_format do
     "JSONCompact"
   end
 
-  @impl Clickhousex.Codec
+  @impl Codec
+  def new do
+    []
+  end
+
+  @impl Codec
+  def append(state, data) do
+    [state, data]
+  end
+
+  @impl Codec
   def decode(response) do
     case Jason.decode(response) do
       {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} ->
