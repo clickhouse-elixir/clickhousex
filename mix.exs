@@ -23,6 +23,9 @@ defmodule Clickhousex.Mixfile do
   defp deps do
     [
       {:db_connection, "~> 2.0.0"},
+      # TODO:
+      # The commit in mint drastically reduces string allocation and improves perf
+      # When they release, bump this to the released version
       {:mint, github: "ericmj/mint", commit: "8d0d12131c8d4f80b85bc258c17dde60ab56ac1b"},
       {:castore, "~> 0.1"},
       {:jason, "~> 1.1.2"},

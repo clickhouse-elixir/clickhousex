@@ -184,10 +184,7 @@ defmodule Clickhousex.Codec.Binary do
   end
 
   def decode(bytes, type) do
-    {:resume,
-     fn more_bytes ->
-       decode(bytes <> more_bytes, type)
-     end}
+    {:resume, &decode(bytes <> &1, type)}
   end
 
   defp decode_list(rest, _, 0, accum) do
@@ -200,10 +197,7 @@ defmodule Clickhousex.Codec.Binary do
         decode_list(rest, data_type, count - 1, [decoded | accum])
 
       {:resume, _} ->
-        {:resume,
-         fn more_data ->
-           decode_list(bytes <> more_data, data_type, count, accum)
-         end}
+        {:resume, &decode_list(bytes <> &1, data_type, count, accum)}
     end
   end
 
@@ -216,7 +210,7 @@ defmodule Clickhousex.Codec.Binary do
   end
 
   defp decode_varint(bytes, result, shift) do
-    {:resume, fn more_data -> decode_varint(bytes <> more_data, result, shift) end}
+    {:resume, &decode_varint(bytes <> &1, result, shift)}
   end
 
   defp decode_struct(rest, [], struct) do

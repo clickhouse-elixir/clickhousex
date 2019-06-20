@@ -1,11 +1,12 @@
 defmodule Clickhousex.Codec.RowBinary do
-  alias Clickhousex.{Codec, Codec.Binary}
+  alias Clickhousex.{Codec, Codec.Binary, Codec.Binary.Extractor}
+  use Extractor
 
   require Record
 
-  Record.defrecord(:state, column_count: 0, column_names: [], column_types: [], rows: [], count: 0)
-
   @behaviour Codec
+
+  Record.defrecord(:state, column_count: 0, column_names: [], column_types: [], rows: [], count: 0)
 
   @impl Codec
   def response_format do
@@ -29,28 +30,26 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   @impl Codec
+  def decode(state(column_names: column_names, rows: rows, count: count)) do
+    {:ok, %{column_names: column_names, rows: Enum.reverse(rows), count: count}}
+  end
+
+  def decode(nil) do
+    decode(state())
+  end
+
+  @impl Codec
   def new do
     nil
   end
 
   @impl Codec
   def append(nil, data) do
-    case Binary.decode(data, :varint) do
-      {:ok, column_count, rest} ->
-        state = state(column_count: column_count)
-
-        case decode_column_names(rest, column_count, state) do
-          state() = state -> state
-          {:resume, _} = resumer -> resumer
-        end
-
-      {:resume, _} ->
-        {:resume, &append(nil, data <> &1)}
-    end
+    extract_column_count(data, state())
   end
 
   def append(state() = state, data) do
-    decode_rows(data, state)
+    extract_rows(data, state)
   end
 
   def append({:resume, resumer}, data) do
@@ -60,114 +59,176 @@ defmodule Clickhousex.Codec.RowBinary do
     end
   end
 
-  @impl Codec
-  def decode(state(column_names: column_names, rows: rows, count: count)) do
-    {:ok, %{column_names: column_names, rows: Enum.reverse(rows), count: count}}
+  @extract column_count: :varint
+  defp extract_column_count(<<data::binary>>, column_count, state) do
+    extract_column_names(data, column_count, state(state, column_count: column_count))
   end
 
-  def decode(nil) do
-    decode(state())
-  end
-
-  defp decode_column_names(
-         bytes,
+  defp extract_column_names(
+         <<data::binary>>,
          0,
-         state(column_names: names, column_count: column_count) = state
+         state(column_count: column_count, column_names: column_names) = state
        ) do
-    decode_column_types(bytes, column_count, state(state, column_names: Enum.reverse(names)))
+    new_state = state(state, column_names: Enum.reverse(column_names))
+    extract_column_types(data, column_count, [], new_state)
   end
 
-  defp decode_column_names(bytes, remaining_columns, state(column_names: names) = state) do
-    case Binary.decode(bytes, :string) do
-      {:ok, column_name, rest} ->
-        decode_column_names(
-          rest,
-          remaining_columns - 1,
-          state(state, column_names: [column_name | names])
-        )
-
-      {:resume, _} ->
-        {:resume,
-         fn more_data -> decode_column_names(bytes <> more_data, remaining_columns, state) end}
-    end
+  defp extract_column_names(<<data::binary>>, remaining, state) do
+    extract_column_name(data, remaining, state)
   end
 
-  defp decode_column_types(bytes, 0, state(column_types: types) = state) do
-    decode_rows(bytes, state(state, column_types: Enum.reverse(types)))
+  @extract column_name: :string
+  defp extract_column_name(<<data::binary>>, remaining, column_name, state) do
+    column_names = state(state, :column_names)
+
+    extract_column_names(
+      data,
+      remaining - 1,
+      state(state, column_names: [column_name | column_names])
+    )
   end
 
-  defp decode_column_types(bytes, remaining_columns, state(column_types: types) = state) do
-    case Binary.decode(bytes, :string) do
-      {:ok, column_type, rest} ->
-        column_type = parse_type(column_type)
-        column_types = [column_type | types]
-
-        decode_column_types(rest, remaining_columns - 1, state(state, column_types: column_types))
-
-      {:resume, _} ->
-        {:resume,
-         fn more_data -> decode_column_types(bytes <> more_data, remaining_columns, state) end}
-    end
+  defp extract_column_types(<<data::binary>>, 0, column_types, state) do
+    column_types = Enum.reverse(column_types)
+    new_state = state(state, column_types: column_types)
+    extract_rows(data, new_state)
   end
 
-  defp decode_rows(<<>>, state() = state) do
+  defp extract_column_types(<<data::binary>>, remaining, column_types, state) do
+    extract_column_type(data, remaining, column_types, state)
+  end
+
+  @extract column_type: :string
+  defp extract_column_type(<<data::binary>>, remaining, column_type, column_types, state) do
+    column_type = parse_type(column_type)
+
+    extract_column_types(data, remaining - 1, [column_type | column_types], state)
+  end
+
+  defp extract_rows(<<>>, state() = state) do
     state
   end
 
-  defp decode_rows(bytes, state(column_types: column_types, rows: rows, count: count) = state) do
-    case decode_row(bytes, column_types, []) do
-      {:ok, row, rest} ->
-        decode_rows(rest, state(state, rows: [row | rows], count: count + 1))
+  defp extract_rows(<<data::binary>>, state(column_types: column_types) = state) do
+    extract_row(data, column_types, [], state)
+  end
 
-      {:resume, _} ->
-        {:resume, fn more_data -> decode_rows(bytes <> more_data, state) end}
+  defp extract_row(<<data::binary>>, [], row_data, state(rows: rows, count: count) = state) do
+    row = row_data |> Enum.reverse() |> List.to_tuple()
+    new_state = state(state, rows: [row | rows], count: count + 1)
+    extract_rows(data, new_state)
+  end
+
+  defp extract_row(<<data::binary>>, [type | types], row, state) do
+    extract_field(data, type, types, row, state)
+  end
+
+  defp extract_field(<<>>, type, types, row, state) do
+    {:resume, &extract_field(&1, type, types, row, state)}
+  end
+
+  defp extract_field(<<data::binary>>, {:fixed_string, length} = fixed_string, types, row, state) do
+    case data do
+      <<value::binary-size(length), rest::binary>> ->
+        extract_row(rest, types, [value | row], state)
+
+      _ ->
+        {:resume, &extract_field(data <> &1, fixed_string, types, row, state)}
     end
   end
 
-  defp decode_row(<<bytes::bits>>, [], row) do
-    row_tuple =
-      row
-      |> Enum.reverse()
-      |> List.to_tuple()
+  @scalar_types [
+    :i64,
+    :i32,
+    :i16,
+    :i8,
+    :u64,
+    :u32,
+    :u16,
+    :u8,
+    :f64,
+    :f32,
+    :boolean,
+    :string,
+    :date,
+    :datetime
+  ]
 
-    {:ok, row_tuple, bytes}
-  end
+  # extract_field functions for scalar and nullable scalar types
+  for type <- @scalar_types,
+      nullable_type = {:nullable, type},
+      extract_fn_name = :"extract_#{type}",
+      nullable_extract_fn_name = :"extract_nullable_#{type}" do
+    defp extract_field(<<data::binary>>, unquote(type), types, row, state) do
+      unquote(extract_fn_name)(data, types, row, state)
+    end
 
-  defp decode_row(<<1, rest::binary>>, [{:nullable, _} | types], row) do
-    decode_row(rest, types, [nil | row])
-  end
-
-  defp decode_row(<<0, rest::binary>>, [{:nullable, actual_type} | types], row) do
-    decode_row(rest, [actual_type | types], row)
-  end
-
-  defp decode_row(<<bytes::bits>>, [{:fixed_string, length} | types], row)
-       when byte_size(bytes) >= length do
-    <<value::binary-size(length), rest::binary>> = bytes
-    decode_row(rest, types, [value | row])
-  end
-
-  defp decode_row(<<bytes::bits>>, [{:fixed_string, _} | _] = current_types, row) do
-    {:resume, fn more_data -> decode_row(bytes <> more_data, current_types, row) end}
-  end
-
-  defp decode_row(<<bytes::bits>>, [{:array, elem_type} | types] = current_types, row) do
-    case Binary.decode(bytes, {:list, elem_type}) do
-      {:ok, value, rest} ->
-        decode_row(rest, types, [value | row])
-
-      {:resume, _} ->
-        {:resume, fn more_data -> decode_row(bytes <> more_data, current_types, row) end}
+    defp extract_field(<<data::binary>>, unquote(nullable_type), types, row, state) do
+      unquote(nullable_extract_fn_name)(data, types, row, state)
     end
   end
 
-  defp decode_row(<<bytes::bits>>, [type | types] = current_types, row) do
-    case Binary.decode(bytes, type) do
-      {:ok, value, rest} ->
-        decode_row(rest, types, [value | row])
+  # extract_field functions for arrays
 
-      {:resume, _} ->
-        {:resume, fn more_data -> decode_row(bytes <> more_data, current_types, row) end}
+  for type <- @scalar_types,
+      array_type = {:array, type},
+      nullable_array_type = {:array, {:nullable, type}},
+      extract_fn_name = :"extract_array_#{type}",
+      nullable_extract_fn_name = :"extract_array_nullable_#{type}" do
+    defp extract_field(<<data::binary>>, unquote(array_type), types, row, state) do
+      unquote(extract_fn_name)(data, types, row, state)
+    end
+
+    defp extract_field(<<data::binary>>, unquote(nullable_array_type), types, row, state) do
+      unquote(nullable_extract_fn_name)(data, types, row, state)
+    end
+  end
+
+  # Catchall that delegates to the Binary module.
+  # This should not be used much, if at all, and it will create match contexts
+  defp extract_field(<<data::binary>>, type, types, row, state) do
+    case Binary.decode(data, type) do
+      {:ok, value, rest} ->
+        extract_row(rest, types, [value | row], state)
+
+      _ ->
+        {:resume, fn more_data -> extract_field(data <> more_data, type, types, row, state) end}
+    end
+  end
+
+  # scalar extractors
+  for type <- @scalar_types,
+      extract_fn_name = :"extract_#{type}" do
+    @extract field_value: type
+    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
+      extract_row(data, types, [field_value | row], state)
+    end
+  end
+
+  # nullable scalar extractors
+  for type <- @scalar_types,
+      nullable_type = {:nullable, type},
+      extract_fn_name = :"extract_nullable_#{type}" do
+    @extract field_value: nullable_type
+    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
+      extract_row(data, types, [field_value | row], state)
+    end
+  end
+
+  # Array extractors
+  for type <- @scalar_types,
+      array_type = {:list, type},
+      nullable_array_type = {:list, {:nullable, type}},
+      extract_fn_name = :"extract_array_#{type}",
+      nullable_extract_fn_name = :"extract_array_nullable_#{type}" do
+    @extract field_value: array_type
+    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
+      extract_row(data, types, [field_value | row], state)
+    end
+
+    @extract field_value: nullable_array_type
+    defp unquote(nullable_extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
+      extract_row(data, types, [field_value | row], state)
     end
   end
 
