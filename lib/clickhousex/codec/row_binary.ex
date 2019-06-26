@@ -1,4 +1,12 @@
 defmodule Clickhousex.Codec.RowBinary do
+  @moduledoc """
+  A codec that speaks Clickhouse's RowBinary format
+
+  To use this codec, set the application `:clickhousex` `:codec` application variable:
+
+       config :clickhousex, codec: Clickhousex.Codec.RowBinary
+
+  """
   alias Clickhousex.{Codec, Codec.Binary, Codec.Binary.Extractor}
   use Extractor
 

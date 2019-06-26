@@ -14,7 +14,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
         {other_param, length}
       end
 
-  In the above example, a function named `extract_length/2` will be called, which, when passed a binary, will
+  In the above example, a function named `extract_length/2` will be created, which, when passed a binary, will
   extract the length varint from it, and call the function above, passing the unparsed part of the binary and the extracted
   length varint to it.
 
@@ -46,8 +46,8 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     1. Strings: `:string`
     1. Booleans: `:boolean`
     1. Dates: `:date`, `:datetime`
-    1. Lists of the above scalar types
-    1. Nullable instances of all the above
+    1. Lists of the above scalar types `{:list, scalar}`
+    1. Nullable instances of all the above `{:nullable, scalar}` or `{:list, {:nullable, scalar}}`
   """
 
   defmacro __using__(_) do
@@ -92,6 +92,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     |> collapse_blocks()
   end
 
+  @doc false
   def on_definition(env, visibility, name, args, _guards, _body) do
     extractors = Module.get_attribute(env.module, :extract)
     Module.delete_attribute(env.module, :extract)

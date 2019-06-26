@@ -1,4 +1,6 @@
 defmodule Clickhousex.Codec.RowBinary.Old do
+  @moduledoc false
+
   alias Clickhousex.{Codec, Codec.Binary}
 
   require Record
