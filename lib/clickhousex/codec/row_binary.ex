@@ -7,7 +7,8 @@ defmodule Clickhousex.Codec.RowBinary do
        config :clickhousex, codec: Clickhousex.Codec.RowBinary
 
   """
-  alias Clickhousex.{Codec, Codec.Binary, Codec.Binary.Extractor}
+  alias Clickhousex.{Codec, Codec.Binary.Extractor, Codec.RowBinary.Utils}
+  import Utils
   use Extractor
 
   require Record
@@ -162,80 +163,21 @@ defmodule Clickhousex.Codec.RowBinary do
     :datetime
   ]
 
-  # extract_field functions for scalar and nullable scalar types
-  for type <- @scalar_types,
-      nullable_type = {:nullable, type},
-      extract_fn_name = :"extract_#{type}",
-      nullable_extract_fn_name = :"extract_nullable_#{type}" do
+  @all_types @scalar_types
+             |> Enum.flat_map(&type_permutations/1)
+             |> Enum.sort()
+
+  # Build all permutations of extract_field/5
+  for type <- @all_types do
     defp extract_field(<<data::binary>>, unquote(type), types, row, state) do
-      unquote(extract_fn_name)(data, types, row, state)
-    end
-
-    defp extract_field(<<data::binary>>, unquote(nullable_type), types, row, state) do
-      unquote(nullable_extract_fn_name)(data, types, row, state)
+      unquote(extractor_name(type))(data, types, row, state)
     end
   end
 
-  # extract_field functions for arrays
-
-  for type <- @scalar_types,
-      array_type = {:array, type},
-      nullable_array_type = {:array, {:nullable, type}},
-      extract_fn_name = :"extract_array_#{type}",
-      nullable_extract_fn_name = :"extract_array_nullable_#{type}" do
-    defp extract_field(<<data::binary>>, unquote(array_type), types, row, state) do
-      unquote(extract_fn_name)(data, types, row, state)
-    end
-
-    defp extract_field(<<data::binary>>, unquote(nullable_array_type), types, row, state) do
-      unquote(nullable_extract_fn_name)(data, types, row, state)
-    end
-  end
-
-  # Catchall that delegates to the Binary module.
-  # This should not be used much, if at all, and it will create match contexts
-  defp extract_field(<<data::binary>>, type, types, row, state) do
-    case Binary.decode(data, type) do
-      {:ok, value, rest} ->
-        extract_row(rest, types, [value | row], state)
-
-      _ ->
-        {:resume, fn more_data -> extract_field(data <> more_data, type, types, row, state) end}
-    end
-  end
-
-  # scalar extractors
-  for type <- @scalar_types,
-      extract_fn_name = :"extract_#{type}" do
+  # Build all specific typed extractors, e.g. extract_u8/5
+  for type <- @all_types do
     @extract field_value: type
-    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
-      extract_row(data, types, [field_value | row], state)
-    end
-  end
-
-  # nullable scalar extractors
-  for type <- @scalar_types,
-      nullable_type = {:nullable, type},
-      extract_fn_name = :"extract_nullable_#{type}" do
-    @extract field_value: nullable_type
-    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
-      extract_row(data, types, [field_value | row], state)
-    end
-  end
-
-  # Array extractors
-  for type <- @scalar_types,
-      array_type = {:list, type},
-      nullable_array_type = {:list, {:nullable, type}},
-      extract_fn_name = :"extract_array_#{type}",
-      nullable_extract_fn_name = :"extract_array_nullable_#{type}" do
-    @extract field_value: array_type
-    defp unquote(extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
-      extract_row(data, types, [field_value | row], state)
-    end
-
-    @extract field_value: nullable_array_type
-    defp unquote(nullable_extract_fn_name)(<<data::binary>>, field_value, types, row, state) do
+    defp unquote(extractor_name(type))(<<data::binary>>, field_value, types, row, state) do
       extract_row(data, types, [field_value | row], state)
     end
   end
@@ -268,6 +210,8 @@ defmodule Clickhousex.Codec.RowBinary do
     {:array, rest_type}
   end
 
+  # Boolean isn't represented below because clickhouse has no concept
+  # of booleans.
   @clickhouse_mappings [
     {"Int64", :i64},
     {"Int32", :i32},

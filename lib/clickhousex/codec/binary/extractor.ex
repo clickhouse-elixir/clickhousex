@@ -446,6 +446,10 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
+  defp build_extractor({:array, item_type}, arg_name, extractor_name, landing_call, args) do
+    build_extractor({:list, item_type}, arg_name, extractor_name, landing_call, args)
+  end
+
   defp build_extractor({:list, item_type}, arg_name, extractor_name, landing_call, [binary_arg | non_binary_args]) do
     extractor_args = reject_argument(non_binary_args, arg_name)
 
