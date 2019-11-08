@@ -15,7 +15,7 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:logger, :db_connection, :httpoison]
+      extra_applications: [:logger]
     ]
   end
 
