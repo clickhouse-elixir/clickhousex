@@ -48,6 +48,15 @@ defmodule Clickhousex.Codec.Binary do
     encode(:u8, 0)
   end
 
+  @spec decode_column_name(binary) :: {:ok, binary, binary} | {:error, :invalid_byte_size}
+  def decode_column_name(bytes) do
+    with {:ok, byte_count, rest} <- decode(bytes, :varint),
+         :ok <- validate_byte_count(rest, byte_count) do
+      <<decoded_str::binary-size(byte_count), rest::binary>> = rest
+      {:ok, decoded_str, rest}
+    end
+  end
+
   def decode(bytes, :struct, struct_module) do
     decode_struct(bytes, struct_module.decode_spec(), struct(struct_module))
   end
@@ -65,7 +74,7 @@ defmodule Clickhousex.Codec.Binary do
 
   def decode(bytes, :string) do
     with {:ok, byte_count, rest} <- decode(bytes, :varint),
-         true <- byte_size(rest) >= byte_count do
+         :ok <- validate_byte_count(rest, byte_count) do
       <<decoded_str::binary-size(byte_count), rest::binary>> = rest
       {:ok, decoded_str, rest}
     end
@@ -177,5 +186,11 @@ defmodule Clickhousex.Codec.Binary do
       {:error, _} = err ->
         err
     end
+  end
+
+  defp validate_byte_count(tail, byte_count) do
+    if byte_size(tail) >= byte_count,
+      do: :ok,
+      else: {:error, :invalid_byte_size}
   end
 end

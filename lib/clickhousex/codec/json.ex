@@ -15,21 +15,22 @@ defmodule Clickhousex.Codec.JSON do
 
   @impl Clickhousex.Codec
   def decode(response) do
-    case Jason.decode(response) do
-      {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} ->
-        column_names = Enum.map(meta, & &1["name"])
-        column_types = Enum.map(meta, & &1["type"])
+    with {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} <- Jason.decode(response) do
+      column_names = Enum.map(meta, & &1["name"])
+      column_types = Enum.map(meta, & &1["type"])
+      rows = Enum.map(data, &decode_row(&1, column_types))
 
-        rows =
-          for row <- data do
-            for {raw_value, column_type} <- Enum.zip(row, column_types) do
-              to_native(column_type, raw_value)
-            end
-            |> List.to_tuple()
-          end
-
-        {:ok, %{column_names: column_names, rows: rows, count: row_count}}
+      {:ok, %{column_names: column_names, rows: rows, count: row_count}}
     end
+  end
+
+  @spec decode_row([term], [atom]) :: [term]
+  def decode_row(row, column_types) do
+    column_types
+    |> Enum.zip(row)
+    |> Enum.map(fn {type, raw_value} ->
+      to_native(type, raw_value)
+    end)
   end
 
   defp to_native(_, nil) do

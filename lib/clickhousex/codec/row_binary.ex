@@ -26,8 +26,9 @@ defmodule Clickhousex.Codec.RowBinary do
 
   @impl Codec
   def decode(response) when is_binary(response) do
-    {:ok, column_count, rest} = Binary.decode(response, :varint)
-    decode_metadata(rest, column_count)
+    with {:ok, column_count, rest} <- Binary.decode(response, :varint) do
+      decode_metadata(rest, column_count)
+    end
   end
 
   defp decode_metadata(bytes, column_count) do
@@ -38,12 +39,13 @@ defmodule Clickhousex.Codec.RowBinary do
     {:ok, %{column_names: column_names, rows: rows, count: 0}}
   end
 
+  @spec decode_column_names(binary, integer, [binary]) :: {:ok, [binary], binary}
   defp decode_column_names(bytes, 0, names) do
     {:ok, Enum.reverse(names), bytes}
   end
 
   defp decode_column_names(bytes, column_count, names) do
-    {:ok, column_name, rest} = Binary.decode(bytes, :string)
+    {:ok, column_name, rest} = Binary.decode_column_name(bytes)
     decode_column_names(rest, column_count - 1, [column_name | names])
   end
 
@@ -56,6 +58,7 @@ defmodule Clickhousex.Codec.RowBinary do
     decode_column_types(rest, column_count - 1, [to_type(column_type) | types])
   end
 
+  @spec decode_rows(binary, list, [[term]]) :: {:ok, [[term]]}
   defp decode_rows(<<>>, _, rows) do
     {:ok, Enum.reverse(rows)}
   end
@@ -67,12 +70,7 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   defp decode_row(bytes, [], row) do
-    row_tuple =
-      row
-      |> Enum.reverse()
-      |> List.to_tuple()
-
-    {:ok, row_tuple, bytes}
+    {:ok, Enum.reverse(row), bytes}
   end
 
   defp decode_row(<<1, rest::binary>>, [{:nullable, _} | types], row) do
