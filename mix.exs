@@ -22,11 +22,12 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 2.0.0"},
+      {:db_connection, "~> 2.2"},
       {:httpoison, "~> 1.5"},
       {:jason, "~> 1.1.2"},
       {:ex_doc, "~> 0.19", only: :dev},
-      {:benchee, "~> 0.14.0", only: [:dev, :test]}
+      {:benchee, "~> 0.14.0", only: [:dev, :test]},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false}
     ]
   end
 
