@@ -22,7 +22,7 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 2.0.0"},
+      {:db_connection, "~> 2.2"},
       # TODO:
       # The commit in mint drastically reduces string allocation and improves perf
       # When they release, bump this to the released version
