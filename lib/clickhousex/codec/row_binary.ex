@@ -1,7 +1,21 @@
 defmodule Clickhousex.Codec.RowBinary do
-  alias Clickhousex.{Codec, Codec.Binary}
+  @moduledoc """
+  A codec that speaks Clickhouse's RowBinary format
+
+  To use this codec, set the application `:clickhousex` `:codec` application variable:
+
+       config :clickhousex, codec: Clickhousex.Codec.RowBinary
+
+  """
+  alias Clickhousex.{Codec, Codec.Binary.Extractor, Codec.RowBinary.Utils}
+  import Utils
+  use Extractor
+
+  require Record
 
   @behaviour Codec
+
+  Record.defrecord(:state, column_count: 0, column_names: [], column_types: [], rows: [], count: 0)
 
   @impl Codec
   def response_format do
@@ -21,93 +35,163 @@ defmodule Clickhousex.Codec.RowBinary do
         other -> other
       end)
 
-    Clickhousex.Codec.Values.encode(query, replacements, params)
+    Codec.Values.encode(query, replacements, params)
   end
 
   @impl Codec
-  def decode(response) when is_binary(response) do
-    {:ok, column_count, rest} = Binary.decode(response, :varint)
-    decode_metadata(rest, column_count)
+  def decode(state(column_names: column_names, rows: rows, count: count)) do
+    {:ok, %{column_names: column_names, rows: Enum.reverse(rows), count: count}}
   end
 
-  defp decode_metadata(bytes, column_count) do
-    {:ok, column_names, rest} = decode_column_names(bytes, column_count, [])
-    {:ok, column_types, rest} = decode_column_types(rest, column_count, [])
-
-    {:ok, rows} = decode_rows(rest, column_types, [])
-    {:ok, %{column_names: column_names, rows: rows, count: 0}}
+  def decode(nil) do
+    decode(state())
   end
 
-  defp decode_column_names(bytes, 0, names) do
-    {:ok, Enum.reverse(names), bytes}
+  @impl Codec
+  def new do
+    nil
   end
 
-  defp decode_column_names(bytes, column_count, names) do
-    {:ok, column_name, rest} = Binary.decode(bytes, :string)
-    decode_column_names(rest, column_count - 1, [column_name | names])
+  @impl Codec
+  def append(nil, data) do
+    extract_column_count(data, state())
   end
 
-  defp decode_column_types(bytes, 0, types) do
-    {:ok, Enum.reverse(types), bytes}
+  def append(state() = state, data) do
+    extract_rows(data, state)
   end
 
-  defp decode_column_types(bytes, column_count, types) do
-    {:ok, column_type, rest} = Binary.decode(bytes, :string)
-    decode_column_types(rest, column_count - 1, [to_type(column_type) | types])
+  def append({:resume, resumer}, data) do
+    case resumer.(data) do
+      {:resume, _} = resumer -> resumer
+      state() = state -> state
+    end
   end
 
-  defp decode_rows(<<>>, _, rows) do
-    {:ok, Enum.reverse(rows)}
+  @extract column_count: :varint
+  defp extract_column_count(<<data::binary>>, column_count, state) do
+    extract_column_names(data, column_count, state(state, column_count: column_count))
   end
 
-  defp decode_rows(bytes, atom_types, rows) do
-    {:ok, row, rest} = decode_row(bytes, atom_types, [])
-
-    decode_rows(rest, atom_types, [row | rows])
+  defp extract_column_names(
+         <<data::binary>>,
+         0,
+         state(column_count: column_count, column_names: column_names) = state
+       ) do
+    new_state = state(state, column_names: Enum.reverse(column_names))
+    extract_column_types(data, column_count, [], new_state)
   end
 
-  defp decode_row(bytes, [], row) do
-    row_tuple =
-      row
-      |> Enum.reverse()
-      |> List.to_tuple()
-
-    {:ok, row_tuple, bytes}
+  defp extract_column_names(<<data::binary>>, remaining, state) do
+    extract_column_name(data, remaining, state)
   end
 
-  defp decode_row(<<1, rest::binary>>, [{:nullable, _} | types], row) do
-    decode_row(rest, types, [nil | row])
+  @extract column_name: :string
+  defp extract_column_name(<<data::binary>>, remaining, column_name, state) do
+    column_names = state(state, :column_names)
+
+    extract_column_names(
+      data,
+      remaining - 1,
+      state(state, column_names: [column_name | column_names])
+    )
   end
 
-  defp decode_row(<<0, rest::binary>>, [{:nullable, actual_type} | types], row) do
-    decode_row(rest, [actual_type | types], row)
+  defp extract_column_types(<<data::binary>>, 0, column_types, state) do
+    column_types = Enum.reverse(column_types)
+    new_state = state(state, column_types: column_types)
+    extract_rows(data, new_state)
   end
 
-  defp decode_row(bytes, [{:fixed_string, length} | types], row) do
-    <<value::binary-size(length), rest::binary>> = bytes
-    decode_row(rest, types, [value | row])
+  defp extract_column_types(<<data::binary>>, remaining, column_types, state) do
+    extract_column_type(data, remaining, column_types, state)
   end
 
-  defp decode_row(bytes, [{:array, elem_type} | types], row) do
-    {:ok, value, rest} = Binary.decode(bytes, {:list, elem_type})
-    decode_row(rest, types, [value | row])
+  @extract column_type: :string
+  defp extract_column_type(<<data::binary>>, remaining, column_type, column_types, state) do
+    column_type = parse_type(column_type)
+
+    extract_column_types(data, remaining - 1, [column_type | column_types], state)
   end
 
-  defp decode_row(bytes, [type | types], row) do
-    {:ok, value, rest} = Binary.decode(bytes, type)
-    decode_row(rest, types, [value | row])
+  defp extract_rows(<<>>, state() = state) do
+    state
   end
 
-  defp to_type(<<"Nullable(", type::binary>>) do
+  defp extract_rows(<<data::binary>>, state(column_types: column_types) = state) do
+    extract_row(data, column_types, [], state)
+  end
+
+  defp extract_row(<<data::binary>>, [], row_data, state(rows: rows, count: count) = state) do
+    row = row_data |> Enum.reverse() |> List.to_tuple()
+    new_state = state(state, rows: [row | rows], count: count + 1)
+    extract_rows(data, new_state)
+  end
+
+  defp extract_row(<<data::binary>>, [type | types], row, state) do
+    extract_field(data, type, types, row, state)
+  end
+
+  defp extract_field(<<>>, type, types, row, state) do
+    {:resume, &extract_field(&1, type, types, row, state)}
+  end
+
+  defp extract_field(<<data::binary>>, {:fixed_string, length} = fixed_string, types, row, state) do
+    case data do
+      <<value::binary-size(length), rest::binary>> ->
+        extract_row(rest, types, [value | row], state)
+
+      _ ->
+        {:resume, &extract_field(data <> &1, fixed_string, types, row, state)}
+    end
+  end
+
+  @scalar_types [
+    :i64,
+    :i32,
+    :i16,
+    :i8,
+    :u64,
+    :u32,
+    :u16,
+    :u8,
+    :f64,
+    :f32,
+    :boolean,
+    :string,
+    :date,
+    :datetime
+  ]
+
+  @all_types @scalar_types
+             |> Enum.flat_map(&type_permutations/1)
+             |> Enum.sort()
+
+  # Build all permutations of extract_field/5
+  for type <- @all_types do
+    defp extract_field(<<data::binary>>, unquote(type), types, row, state) do
+      unquote(extractor_name(type))(data, types, row, state)
+    end
+  end
+
+  # Build all specific typed extractors, e.g. extract_u8/5
+  for type <- @all_types do
+    @extract field_value: type
+    defp unquote(extractor_name(type))(<<data::binary>>, field_value, types, row, state) do
+      extract_row(data, types, [field_value | row], state)
+    end
+  end
+
+  defp parse_type(<<"Nullable(", type::binary>>) do
     rest_type =
       type
       |> String.replace_suffix(")", "")
-      |> to_type()
+      |> parse_type()
 
     {:nullable, rest_type}
   end
 
-  defp to_type(<<"FixedString(", rest::binary>>) do
+  defp parse_type(<<"FixedString(", rest::binary>>) do
     case Integer.parse(rest) do
       {length, rest} ->
         rest
@@ -117,15 +201,17 @@ defmodule Clickhousex.Codec.RowBinary do
     end
   end
 
-  defp to_type(<<"Array(", type::binary>>) do
+  defp parse_type(<<"Array(", type::binary>>) do
     rest_type =
       type
       |> String.replace_suffix(")", "")
-      |> to_type()
+      |> parse_type()
 
     {:array, rest_type}
   end
 
+  # Boolean isn't represented below because clickhouse has no concept
+  # of booleans.
   @clickhouse_mappings [
     {"Int64", :i64},
     {"Int32", :i32},
@@ -144,7 +230,7 @@ defmodule Clickhousex.Codec.RowBinary do
     {"DateTime", :datetime}
   ]
   for {clickhouse_type, local_type} <- @clickhouse_mappings do
-    defp to_type(unquote(clickhouse_type)) do
+    defp parse_type(unquote(clickhouse_type)) do
       unquote(local_type)
     end
   end

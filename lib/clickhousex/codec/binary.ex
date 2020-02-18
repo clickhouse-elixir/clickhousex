@@ -40,6 +40,14 @@ defmodule Clickhousex.Codec.Binary do
     <<i::little-signed-size(64)>>
   end
 
+  def encode(:f64, f) do
+    <<f::little-signed-float-size(64)>>
+  end
+
+  def encode(:f32, f) do
+    <<f::little-signed-float-size(32)>>
+  end
+
   def encode(:boolean, true) do
     encode(:u8, 1)
   end
@@ -48,15 +56,36 @@ defmodule Clickhousex.Codec.Binary do
     encode(:u8, 0)
   end
 
+  def encode({:list, type}, list) do
+    elements = for e <- list, do: encode(type, e)
+    [encode(:varint, length(list)), elements]
+  end
+
+  def encode({:nullable, _type}, nil) do
+    encode(:u8, 1)
+  end
+
+  def encode({:nullable, type}, thing) do
+    [
+      encode(:u8, 0),
+      encode(type, thing)
+    ]
+  end
+
   def decode(bytes, :struct, struct_module) do
     decode_struct(bytes, struct_module.decode_spec(), struct(struct_module))
   end
 
-  def decode(bytes, {:nullable, type}) do
-    case decode(bytes, :u8) do
-      {:ok, 0, rest} -> decode(rest, type)
-      {:ok, 1, rest} -> {:ok, nil, rest}
-    end
+  def decode(<<1, rest::binary>>, {:nullable, _type}) do
+    {:ok, nil, rest}
+  end
+
+  def decode(<<0, rest::binary>>, {:nullable, type}) do
+    decode(rest, type)
+  end
+
+  def decode(<<>>, {:nullable, type}) do
+    {:resume, fn more_data -> decode(more_data, {:nullable, type}) end}
   end
 
   def decode(bytes, :varint) do
@@ -68,6 +97,9 @@ defmodule Clickhousex.Codec.Binary do
          true <- byte_size(rest) >= byte_count do
       <<decoded_str::binary-size(byte_count), rest::binary>> = rest
       {:ok, decoded_str, rest}
+    else
+      _ ->
+        {:resume, fn more_data -> decode(bytes <> more_data, :string) end}
     end
   end
 
@@ -80,8 +112,13 @@ defmodule Clickhousex.Codec.Binary do
   end
 
   def decode(bytes, {:list, data_type}) do
-    {:ok, count, rest} = decode(bytes, :varint)
-    decode_list(rest, data_type, count, [])
+    with {:ok, count, rest} <- decode(bytes, :varint) do
+      decode_list(rest, data_type, count, [])
+    else
+      _ ->
+        decoder = fn more_data -> decode(bytes <> more_data, {:list, data_type}) end
+        {:resume, decoder}
+    end
   end
 
   def decode(<<decoded::little-signed-size(64), rest::binary>>, :i64) do
@@ -146,14 +183,21 @@ defmodule Clickhousex.Codec.Binary do
     {:ok, decoded, rest}
   end
 
+  def decode(bytes, type) do
+    {:resume, &decode(bytes <> &1, type)}
+  end
+
   defp decode_list(rest, _, 0, accum) do
     {:ok, Enum.reverse(accum), rest}
   end
 
   defp decode_list(bytes, data_type, count, accum) do
     case decode(bytes, data_type) do
-      {:ok, decoded, rest} -> decode_list(rest, data_type, count - 1, [decoded | accum])
-      other -> other
+      {:ok, decoded, rest} ->
+        decode_list(rest, data_type, count - 1, [decoded | accum])
+
+      {:resume, _} ->
+        {:resume, &decode_list(bytes <> &1, data_type, count, accum)}
     end
   end
 
@@ -163,6 +207,10 @@ defmodule Clickhousex.Codec.Binary do
 
   defp decode_varint(<<1::1, byte::7, rest::binary>>, result, shift) do
     decode_varint(rest, result ||| byte <<< shift, shift + 7)
+  end
+
+  defp decode_varint(bytes, result, shift) do
+    {:resume, &decode_varint(bytes <> &1, result, shift)}
   end
 
   defp decode_struct(rest, [], struct) do

@@ -141,14 +141,18 @@ defmodule Clickhousex.QueryTest do
                [2, nil, nil, nil, nil]
              )
 
-    assert {:ok, _, %Result{rows: [row_1, row_2]}} = select_all(ctx)
+    assert {:ok, _, %Result{rows: rows}} = select_all(ctx)
+    [row_1, row_2] = Enum.sort(rows, fn row_1, row_2 -> elem(row_1, 1) <= elem(row_2, 1) end)
+    assert {1, 2, "hi", _, _} = row_1
+    assert row_2 == {2, nil, nil, nil, nil}
   end
 
   test "arrays", ctx do
     create_statement = """
     CREATE TABLE {{table}} (
       id UInt64,
-      arr_val Array(UInt64)
+      arr_val Array(UInt64),
+      nullable_val Array(Nullable(String))
     ) ENGINE = Memory
 
     """
@@ -156,14 +160,15 @@ defmodule Clickhousex.QueryTest do
     assert {:ok, _, %Result{}} = schema(ctx, create_statement)
 
     assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
-             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [
+             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [
                1,
-               [1, 2, 3]
+               [1, 2, 3],
+               ["hi", nil, "dude"]
              ])
 
     assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
 
-    assert row == {1, [1, 2, 3]}
+    assert row == {1, [1, 2, 3], ["hi", nil, "dude"]}
   end
 
   test "arrays of a nullable type", ctx do
@@ -238,8 +243,11 @@ defmodule Clickhousex.QueryTest do
               command: :selected,
               columns: ["id", "name"],
               num_rows: 2,
-              rows: [{1, "abyrvalg"}, {2, "stinky"}]
+              rows: rows
             }} = select_all(ctx)
+
+    assert {1, "abyrvalg"} in rows
+    assert {2, "stinky"} in rows
   end
 
   test "selecting specific fields", ctx do
@@ -280,8 +288,10 @@ defmodule Clickhousex.QueryTest do
     assert {:ok, _, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
 
-    assert {:ok, _, %{rows: [{"foo@bar.com"}, {"bar@bar.com"}]}} =
+    assert {:ok, _, %{rows: rows}} =
              select(ctx, "SELECT email FROM {{table}} WHERE id IN (?)", [[1, 2]])
+
+    assert [{"bar@bar.com"}, {"foo@bar.com"}] == Enum.sort(rows)
   end
 
   test "updating rows via alter", ctx do
