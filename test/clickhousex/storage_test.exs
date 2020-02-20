@@ -4,8 +4,8 @@ defmodule Clickhousex.StorageTest do
   alias Clickhousex.Result
 
   test "can create and drop database", ctx do
-    assert {:ok, %Result{}} = schema(ctx, "CREATE DATABASE other_db")
-    assert {:ok, %Result{}} = schema(ctx, "DROP DATABASE other_db")
+    assert {:ok, _, %Result{}} = schema(ctx, "CREATE DATABASE other_db")
+    assert {:ok, _, %Result{}} = schema(ctx, "DROP DATABASE other_db")
   end
 
   test "returns correct error when dropping database that doesn't exist", ctx do

@@ -32,7 +32,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   @insert_query_regex ~r/\bINSERT\b/i
   @alter_query_regex ~r/\bALTER\b/i
 
-  @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
+  @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.Json)
 
   def parse(%{statement: statement} = query, _opts) do
     param_count =

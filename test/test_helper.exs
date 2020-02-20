@@ -37,12 +37,12 @@ defmodule ClickhouseCase do
 
   def select(ctx, select_statement, params) do
     select_statement = parameterize(select_statement, ctx)
-    {:ok, _} = CH.query(ctx.client, select_statement, params)
+    {:ok, _, _} = CH.query(ctx.client, select_statement, params)
   end
 
   def insert(ctx, insert_statement, values) do
     insert_statement = parameterize(insert_statement, ctx)
-    {:ok, _} = CH.query(ctx.client, insert_statement, values)
+    {:ok, _, _} = CH.query(ctx.client, insert_statement, values)
   end
 
   defp parameterize(query, ctx) do
@@ -80,7 +80,7 @@ defmodule ClickhouseCase do
       Clickhousex.query!(client, "DROP DATABASE IF EXISTS #{db_name}", [])
     end)
 
-    {:ok, _} = Clickhousex.query(client, "CREATE DATABASE #{db_name}", [])
+    {:ok, _, _} = Clickhousex.query(client, "CREATE DATABASE #{db_name}", [])
 
     {:ok, client: client}
   end

@@ -52,22 +52,15 @@ defmodule Clickhousex do
   end
 
   @spec query(DBConnection.conn(), binary(), list, Keyword.t()) ::
-          {:ok, Clickhousex.Result.t()} | {:error, Exception.t()}
+          {:ok, iodata(), Clickhousex.Result.t()}
   def query(conn, statement, params \\ [], opts \\ []) do
-    query = %Query{name: "", statement: statement}
-
-    with {:ok, _, result} <- DBConnection.prepare_execute(conn, query, params, opts) do
-      {:ok, result}
-    end
+    DBConnection.prepare_execute(conn, %Query{name: "", statement: statement}, params, opts)
   end
 
   @spec query!(DBConnection.conn(), binary(), list, Keyword.t()) ::
-          Clickhousex.Result.t()
+          {iodata(), Clickhousex.Result.t()}
   def query!(conn, statement, params \\ [], opts \\ []) do
-    case query(conn, statement, params, opts) do
-      {:ok, result} -> result
-      {:error, err} -> raise err
-    end
+    DBConnection.prepare_execute!(conn, %Query{name: "", statement: statement}, params, opts)
   end
 
   ## Helpers
