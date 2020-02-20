@@ -136,8 +136,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 0::size(1), c::size(7),
-              rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 0::size(1), c::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) = c <<< 14 ||| b <<< 7 ||| a
@@ -145,8 +144,8 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 0::size(1),
-              d::size(7), rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 0::size(1), d::size(7),
+              rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) = d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
@@ -154,8 +153,8 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 0::size(1), e::size(7), rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              0::size(1), e::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) = e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
@@ -163,8 +162,8 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 1::size(1), e::size(7), 0::size(1), f::size(7), rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              1::size(1), e::size(7), 0::size(1), f::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) = f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
@@ -172,21 +171,18 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 1::size(1), e::size(7), 1::size(1), f::size(7), 0::size(1), g::size(7),
-              rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              1::size(1), e::size(7), 1::size(1), f::size(7), 0::size(1), g::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
-        unquote(int_variable) =
-          g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-
+        unquote(int_variable) = g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
         unquote(landing_call)
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7),
-              0::size(1), h::size(7), rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 0::size(1), h::size(7),
+              rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) =
@@ -197,9 +193,9 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7),
-              1::size(1), h::size(7), 0::size(1), i::size(7), rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
+              0::size(1), i::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) =
@@ -211,10 +207,9 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1),
-              d::size(7), 1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7),
-              1::size(1), h::size(7), 1::size(1), i::size(7), 0::size(1), j::size(7),
-              rest::binary>>,
+            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
+              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
+              1::size(1), i::size(7), 0::size(1), j::size(7), rest::binary>>,
             unquote_splicing(extractor_args)
           ) do
         unquote(int_variable) =
@@ -225,10 +220,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
       end
 
       def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args)) do
-        {:resume,
-         fn more_data ->
-           unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args))
-         end}
+        {:resume, fn more_data -> unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args)) end}
       end
     end
   end
@@ -253,8 +245,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
       match =
         quote do
-          <<unquote(value_variable)::little-unquote(signedness)-size(unquote(width)),
-            rest::binary>>
+          <<unquote(value_variable)::little-unquote(signedness)-size(unquote(width)), rest::binary>>
         end
 
       quote do
@@ -371,13 +362,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
-  defp build_extractor(
-         {:nullable, type},
-         arg_name,
-         extractor_name,
-         landing_call,
-         [_ | non_binary_args] = args
-       ) do
+  defp build_extractor({:nullable, type}, arg_name, extractor_name, landing_call, [_ | non_binary_args] = args) do
     extractor_args = reject_argument(non_binary_args, arg_name)
     value_variable = Macro.var(arg_name, nil)
     value_extractor_name = :"#{extractor_name}_value"
@@ -405,9 +390,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
-  defp build_extractor(:string, arg_name, extractor_name, landing_call, [
-         binary_arg | non_binary_args
-       ]) do
+  defp build_extractor(:string, arg_name, extractor_name, landing_call, [binary_arg | non_binary_args]) do
     extractor_args = reject_argument(non_binary_args, arg_name)
 
     length_variable_name = unique_name("string_length")
@@ -442,31 +425,17 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
       # Empty string optimization, prevents concatenating large data to an empty string and
       # reallocating the large data
-      def unquote(extractor_name)(
-            <<>>,
-            unquote_splicing(extractor_args),
-            unquote(length_variable)
-          ) do
-        {:resume,
-         &unquote(extractor_name)(&1, unquote_splicing(extractor_args), unquote(length_variable))}
+      def unquote(extractor_name)(<<>>, unquote_splicing(extractor_args), unquote(length_variable)) do
+        {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args), unquote(length_variable))}
       end
 
-      def unquote(extractor_name)(
-            <<rest::binary>>,
-            unquote_splicing(extractor_args),
-            unquote(length_variable)
-          ) do
+      def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args), unquote(length_variable)) do
         case rest do
           <<unquote(value_arg)::binary-size(unquote(length_variable)), rest::binary>> ->
             unquote(landing_call)
 
           _ ->
-            {:resume,
-             &unquote(extractor_name)(
-               rest <> &1,
-               unquote_splicing(extractor_args),
-               unquote(length_variable)
-             )}
+            {:resume, &unquote(extractor_name)(rest <> &1, unquote_splicing(extractor_args), unquote(length_variable))}
         end
       end
 
@@ -481,9 +450,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     build_extractor({:list, item_type}, arg_name, extractor_name, landing_call, args)
   end
 
-  defp build_extractor({:list, item_type}, arg_name, extractor_name, landing_call, [
-         binary_arg | non_binary_args
-       ]) do
+  defp build_extractor({:list, item_type}, arg_name, extractor_name, landing_call, [binary_arg | non_binary_args]) do
     extractor_args = reject_argument(non_binary_args, arg_name)
 
     length_extractor_name = :"#{extractor_name}_list_length"
@@ -504,12 +471,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
     length_landing_call =
       quote do
-        unquote(item_extractor_name)(
-          rest,
-          unquote_splicing(extractor_args),
-          unquote(length_variable),
-          []
-        )
+        unquote(item_extractor_name)(rest, unquote_splicing(extractor_args), unquote(length_variable), [])
       end
 
     list_landing_call =
@@ -530,12 +492,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
     length_extractors =
       :varint
-      |> build_extractor(
-        length_name,
-        length_extractor_name,
-        length_landing_call,
-        length_extractor_args
-      )
+      |> build_extractor(length_name, length_extractor_name, length_landing_call, length_extractor_args)
       |> collapse_blocks()
 
     quote do
@@ -559,9 +516,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
             unquote(item_variable),
             unquote(item_accumulator_variable)
           ) do
-        unquote(item_accumulator_variable) =
-          Enum.reverse([unquote(item_variable) | unquote(item_accumulator_variable)])
-
+        unquote(item_accumulator_variable) = Enum.reverse([unquote(item_variable) | unquote(item_accumulator_variable)])
         unquote(landing_call)
       end
 
@@ -574,10 +529,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
             unquote(item_variable),
             unquote(item_accumulator_variable)
           ) do
-        unquote(item_accumulator_variable) = [
-          unquote(item_variable) | unquote(item_accumulator_variable)
-        ]
-
+        unquote(item_accumulator_variable) = [unquote(item_variable) | unquote(item_accumulator_variable)]
         unquote(item_extractor_name)(rest, unquote_splicing(item_extractor_call_args))
       end
     end

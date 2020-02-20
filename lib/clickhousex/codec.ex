@@ -1,5 +1,5 @@
 defmodule Clickhousex.Codec do
-  @type row :: [term]
+  @type row :: tuple
   @type query :: Clickhousex.Query.t()
   @type param :: any
   @type param_replacements :: iodata
