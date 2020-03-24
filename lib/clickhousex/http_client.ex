@@ -102,10 +102,14 @@ defmodule Clickhousex.HTTPClient do
     end
   end
 
+  defp decode_response(conn, %Query{type: :create}, %Response{status: 200} = _response) do
+    {:ok, conn, {:updated, 1}}
+  end
+
   defp decode_response(conn, %Query{}, response) do
     case Response.decode(response) do
       {:error, reason} -> {:error, conn, reason}
-      _ -> {:ok, conn, {:updated, 1}}
+       _ -> {:ok, conn, {:updated, 1}}
     end
   end
 
