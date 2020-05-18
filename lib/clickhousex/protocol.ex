@@ -17,6 +17,8 @@ defmodule Clickhousex.Protocol do
   @type query :: Clickhousex.Query.t()
   @type result :: Clickhousex.Result.t()
   @type cursor :: any
+  @type post_date :: any
+  @type query_string_data :: any
 
   @ping_query Clickhousex.Query.new("SELECT 1") |> DBConnection.Query.parse([])
   @ping_params DBConnection.Query.encode(@ping_query, [], [])
@@ -66,9 +68,7 @@ defmodule Clickhousex.Protocol do
   end
 
   @doc false
-  @spec ping(state) ::
-          {:ok, state}
-          | {:disconnect, term, state}
+  @spec ping(state) :: {:ok, state} | {:disconnect, Exception.t(), state}
   def ping(state) do
     case do_query(state.conn, @ping_query, @ping_params, [], state) do
       {:ok, _, _, new_state} -> {:ok, new_state}
@@ -80,8 +80,9 @@ defmodule Clickhousex.Protocol do
   @doc false
   @spec reconnect(new_opts :: Keyword.t(), state) :: {:ok, state}
   def reconnect(new_opts, state) do
-    with :ok <- disconnect("Reconnecting", state),
-         do: connect(new_opts)
+    with :ok <- disconnect(Error.exception("Reconnecting"), state) do
+      connect(new_opts)
+    end
   end
 
   @doc false
@@ -108,8 +109,13 @@ defmodule Clickhousex.Protocol do
   end
 
   @doc false
-  @spec handle_execute(query, list, opts :: Keyword.t(), state) ::
-          {:ok, result, state}
+  @spec handle_execute(
+          query,
+          %{post_data: post_date, query_string_data: query_string_data},
+          opts :: Keyword.t(),
+          state
+        ) ::
+          {:ok, query, result, state}
           | {:error | :disconnect, Exception.t(), state}
   def handle_execute(query, params, opts, state) do
     do_query(state.conn, query, params, opts, state)
@@ -158,34 +164,24 @@ defmodule Clickhousex.Protocol do
           },
           %{state | conn: conn}
         }
-
-      {:ok, conn, {command, columns, rows}} ->
-        {
-          :ok,
-          query,
-          %Clickhousex.Result{
-            command: command,
-            columns: columns,
-            rows: rows,
-            num_rows: Enum.count(rows)
-          },
-          %{state | conn: conn}
-        }
     end
   end
 
   @doc false
   def handle_declare(_query, _params, _opts, state) do
-    {:error, :cursors_not_supported, state}
+    msg = "cursors_not_supported"
+    {:error, Error.exception(msg), state}
   end
 
   @doc false
   def handle_deallocate(_query, _cursor, _opts, state) do
-    {:error, :cursors_not_supported, state}
+    msg = "cursors_not_supported"
+    {:error, Error.exception(msg), state}
   end
 
   def handle_fetch(_query, _cursor, _opts, state) do
-    {:error, :cursors_not_supported, state}
+    msg = "cursors_not_supported"
+    {:error, Error.exception(msg), state}
   end
 
   @doc false
@@ -214,7 +210,7 @@ defmodule Clickhousex.Protocol do
   end
 
   @doc false
-  @spec handle_info(opts :: Keyword.t(), state) :: {:ok, result, state}
+  @spec handle_info(opts :: Keyword.t(), state) :: {:ok, state}
   def handle_info(_msg, state) do
     {:ok, state}
   end

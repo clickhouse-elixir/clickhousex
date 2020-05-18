@@ -30,17 +30,20 @@ defmodule Clickhousex.Codec.JSON do
       {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} ->
         column_names = Enum.map(meta, & &1["name"])
         column_types = Enum.map(meta, & &1["type"])
-
-        rows =
-          for row <- data do
-            for {raw_value, column_type} <- Enum.zip(row, column_types) do
-              to_native(column_type, raw_value)
-            end
-            |> List.to_tuple()
-          end
+        rows = decode_rows(data, column_types)
 
         {:ok, %{column_names: column_names, rows: rows, count: row_count}}
     end
+  end
+
+  defp decode_rows(data, column_types) do
+    Enum.map(data, &decode_row(&1, column_types))
+  end
+
+  defp decode_row(row, column_types) do
+    column_types
+    |> Enum.zip(row)
+    |> Enum.map(fn {raw, column_type} -> to_native(column_type, raw) end)
   end
 
   defp to_native(_, nil) do

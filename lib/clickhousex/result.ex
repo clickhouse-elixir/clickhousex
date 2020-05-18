@@ -10,11 +10,11 @@ defmodule Clickhousex.Result do
   """
 
   @type t :: %__MODULE__{
-    command:  atom,
-    columns:  [String.t] | nil,
-    rows:     [[term] | binary] | nil,
-    num_rows: integer | :undefined,
-  }
+          command: atom,
+          columns: [String.t()] | nil,
+          rows: [[term] | binary] | nil,
+          num_rows: integer | :undefined
+        }
 
-  defstruct [command: nil, columns: nil, rows: nil, num_rows: :undefined]
+  defstruct command: nil, columns: nil, rows: nil, num_rows: :undefined
 end

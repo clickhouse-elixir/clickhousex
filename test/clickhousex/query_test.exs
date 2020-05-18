@@ -13,11 +13,10 @@ defmodule Clickhousex.QueryTest do
 
     schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES ('qwerty')", [])
 
-    assert {:ok, _,
-            %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [{"qwerty"}]}} =
+    assert {:ok, %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [["qwerty"]]}} =
              select_all(ctx)
   end
 
@@ -29,20 +28,20 @@ defmodule Clickhousex.QueryTest do
      ) ENGINE = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [
                1,
                "abyrvalg"
              ])
 
-    assert {:ok, _,
+    assert {:ok,
             %Result{
               command: :selected,
               columns: ["id", "name"],
               num_rows: 1,
-              rows: [{1, "abyrvalg"}]
+              rows: [[1, "abyrvalg"]]
             }} = select_all(ctx)
   end
 
@@ -72,12 +71,12 @@ defmodule Clickhousex.QueryTest do
     ENGINE = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
     date = Date.utc_today()
     datetime = DateTime.utc_now()
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(
                ctx,
                "INSERT INTO {{table}} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -99,7 +98,7 @@ defmodule Clickhousex.QueryTest do
                ]
              )
 
-    assert {:ok, _, %Result{columns: column_names, rows: [row]}} = select_all(ctx)
+    assert {:ok, %Result{columns: column_names, rows: [row]}} = select_all(ctx)
 
     naive_datetime =
       datetime
@@ -107,8 +106,22 @@ defmodule Clickhousex.QueryTest do
       |> NaiveDateTime.truncate(:second)
 
     assert row ==
-             {329, 328, 327, 32, 429, 428, 427, 42, 29.8, 4.0, "This is long", "hello", date,
-              naive_datetime}
+             [
+               329,
+               328,
+               327,
+               32,
+               429,
+               428,
+               427,
+               42,
+               29.8,
+               4.0,
+               "This is long",
+               "hello",
+               date,
+               naive_datetime
+             ]
   end
 
   test "nullables", ctx do
@@ -125,26 +138,29 @@ defmodule Clickhousex.QueryTest do
     now_date = Date.utc_today()
     now_datetime = DateTime.utc_now()
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(
                ctx,
                "INSERT INTO {{table}} VALUES (?, ?, ?, ?, ?)",
                [1, 2, "hi", now_date, now_datetime]
              )
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(
                ctx,
                "INSERT INTO {{table}} VALUES (?, ?, ?, ?, ?)",
                [2, nil, nil, nil, nil]
              )
 
-    assert {:ok, _, %Result{rows: rows}} = select_all(ctx)
-    [row_1, row_2] = Enum.sort(rows, fn row_1, row_2 -> elem(row_1, 1) <= elem(row_2, 1) end)
-    assert {1, 2, "hi", _, _} = row_1
-    assert row_2 == {2, nil, nil, nil, nil}
+    assert {:ok, %Result{rows: rows}} = select_all(ctx)
+
+    [row_1, row_2] =
+      Enum.sort(rows, fn row_1, row_2 -> Enum.at(row_1, 1) <= Enum.at(row_2, 1) end)
+
+    assert [1, 2, "hi", _, _] = row_1
+    assert row_2 == [2, nil, nil, nil, nil]
   end
 
   test "arrays", ctx do
@@ -157,18 +173,18 @@ defmodule Clickhousex.QueryTest do
 
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [
                1,
                [1, 2, 3],
                ["hi", nil, "dude"]
              ])
 
-    assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
+    assert {:ok, %Result{rows: [row]}} = select_all(ctx)
 
-    assert row == {1, [1, 2, 3], ["hi", nil, "dude"]}
+    assert row == [1, [1, 2, 3], ["hi", nil, "dude"]]
   end
 
   test "arrays of a nullable type", ctx do
@@ -179,13 +195,13 @@ defmodule Clickhousex.QueryTest do
     ) Engine = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [1, [1, nil, 2, nil]])
 
-    assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
-    assert row == {1, [1, nil, 2, nil]}
+    assert {:ok, %Result{rows: [row]}} = select_all(ctx)
+    assert row == [1, [1, nil, 2, nil]]
   end
 
   test "nested", ctx do
@@ -199,9 +215,9 @@ defmodule Clickhousex.QueryTest do
     ) Engine = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(
                ctx,
                "INSERT INTO {{table}} (id, fields.label, fields.count) VALUES (?, ?, ?)",
@@ -212,15 +228,15 @@ defmodule Clickhousex.QueryTest do
                ]
              )
 
-    assert {:ok, _, %Result{rows: [row]}} = select_all(ctx)
-    assert row == {32, ~w(label_1 label_2 label_3), [6, 9, 42]}
+    assert {:ok, %Result{rows: [row]}} = select_all(ctx)
+    assert row == [32, ~w(label_1 label_2 label_3), [6, 9, 42]]
 
-    assert {:ok, _, %Result{rows: [label_1, label_2, label_3]}} =
+    assert {:ok, %Result{rows: [label_1, label_2, label_3]}} =
              select(ctx, "SELECT * from {{table}} ARRAY JOIN fields where id = 32", [])
 
-    assert {32, "label_1", 6} == label_1
-    assert {32, "label_2", 9} == label_2
-    assert {32, "label_3", 42} == label_3
+    assert [32, "label_1", 6] == label_1
+    assert [32, "label_2", 9] == label_2
+    assert [32, "label_3", 42] == label_3
   end
 
   test "queries that insert more than one row", ctx do
@@ -231,14 +247,14 @@ defmodule Clickhousex.QueryTest do
     ) ENGINE = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+    assert {:ok, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [1, "abyrvalg"])
 
     insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [2, "stinky"])
 
-    assert {:ok, _,
+    assert {:ok,
             %Result{
               command: :selected,
               columns: ["id", "name"],
@@ -246,8 +262,8 @@ defmodule Clickhousex.QueryTest do
               rows: rows
             }} = select_all(ctx)
 
-    assert {1, "abyrvalg"} in rows
-    assert {2, "stinky"} in rows
+    assert [1, "abyrvalg"] in rows
+    assert [2, "stinky"] in rows
   end
 
   test "selecting specific fields", ctx do
@@ -259,16 +275,16 @@ defmodule Clickhousex.QueryTest do
     ) ENGINE = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [1, "foobie", "foo@bar.com"])
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
 
-    assert {:ok, _, %{rows: [row]}} = select(ctx, "SELECT email FROM {{table}} WHERE id = ?", [1])
-    assert row == {"foo@bar.com"}
+    assert {:ok, %{rows: [row]}} = select(ctx, "SELECT email FROM {{table}} WHERE id = ?", [1])
+    assert row == ["foo@bar.com"]
   end
 
   test "selecting with in", ctx do
@@ -280,18 +296,18 @@ defmodule Clickhousex.QueryTest do
     ) ENGINE = Memory
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [1, "foobie", "foo@bar.com"])
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
 
-    assert {:ok, _, %{rows: rows}} =
+    assert {:ok, %{rows: rows}} =
              select(ctx, "SELECT email FROM {{table}} WHERE id IN (?)", [[1, 2]])
 
-    assert [{"bar@bar.com"}, {"foo@bar.com"}] == Enum.sort(rows)
+    assert [["bar@bar.com"], ["foo@bar.com"]] == Enum.sort(rows)
   end
 
   test "updating rows via alter", ctx do
@@ -305,15 +321,15 @@ defmodule Clickhousex.QueryTest do
     ORDER BY id SETTINGS index_granularity = 8192
     """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+    assert {:ok, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [1, "foobie", "foo@bar.com"])
 
-    assert {:ok, _, %{command: :updated, num_rows: 1}} =
+    assert {:ok, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
 
-    assert {:ok, _, _} =
+    assert {:ok, _} =
              select(ctx, "ALTER TABLE {{table}} UPDATE email = ? WHERE id = ?", [
                "foobar@bar.com",
                1
