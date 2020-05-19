@@ -43,7 +43,7 @@ defmodule Clickhousex.Codec.JSON do
   defp decode_row(row, column_types) do
     column_types
     |> Enum.zip(row)
-    |> Enum.map(fn {raw, column_type} -> to_native(column_type, raw) end)
+    |> Enum.map(fn {column_type, raw} -> to_native(column_type, raw) end)
   end
 
   defp to_native(_, nil) do
