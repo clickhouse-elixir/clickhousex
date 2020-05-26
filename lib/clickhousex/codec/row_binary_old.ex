@@ -89,7 +89,8 @@ defmodule Clickhousex.Codec.RowBinary.Old do
         )
 
       {:resume, _} ->
-        {:resume, fn more_data -> decode_column_names(bytes <> more_data, remaining_columns, state) end}
+        {:resume,
+         fn more_data -> decode_column_names(bytes <> more_data, remaining_columns, state) end}
     end
   end
 
@@ -106,7 +107,8 @@ defmodule Clickhousex.Codec.RowBinary.Old do
         decode_column_types(rest, remaining_columns - 1, state(state, column_types: column_types))
 
       {:resume, _} ->
-        {:resume, fn more_data -> decode_column_types(bytes <> more_data, remaining_columns, state) end}
+        {:resume,
+         fn more_data -> decode_column_types(bytes <> more_data, remaining_columns, state) end}
     end
   end
 
