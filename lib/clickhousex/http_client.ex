@@ -109,20 +109,9 @@ defmodule Clickhousex.HTTPClient do
     end
   end
 
-  defp headers(opts, post_iodata) do
-    headers =
-      case Keyword.get(opts, :basic_auth) do
-        {username, password} ->
-          auth_user = {"X-ClickHouse-User", username}
-          auth_pass = {"X-ClickHouse-Password", password}
-          [auth_user, auth_pass | @req_headers]
-
-        nil ->
-          @req_headers
-      end
-
+  defp headers(_opts, post_iodata) do
     content_length = post_iodata |> IO.iodata_length() |> Integer.to_string()
-    [{"content-length", content_length} | headers]
+    [{"content-length", content_length} | @req_headers]
   end
 
   defp receive_response(conn, _recv_timeout, %Response{complete?: true} = response) do
