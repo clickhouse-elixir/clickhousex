@@ -14,13 +14,14 @@ defmodule Clickhousex.QueryTest do
 
     schema(ctx, create_statement)
 
-    assert {:ok, %Query{type: :create}, _result} =  schema(ctx, """
-    CREATE MATERIALIZED VIEW IF NOT EXISTS material_view
-    ENGINE = MergeTree() ORDER BY name
-    AS SELECT
-      name
-    FROM {{table}}
-    """)
+    assert {:ok, %Query{type: :create}, _result} =
+             schema(ctx, """
+             CREATE MATERIALIZED VIEW IF NOT EXISTS material_view
+             ENGINE = MergeTree() ORDER BY name
+             AS SELECT
+               name
+             FROM {{table}}
+             """)
   end
 
   test "simple select", ctx do
@@ -35,9 +36,7 @@ defmodule Clickhousex.QueryTest do
     assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES ('qwerty')", [])
 
-    assert {:ok, _,
-            %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [{"qwerty"}]}} =
-             select_all(ctx)
+    assert {:ok, _, %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [{"qwerty"}]}} = select_all(ctx)
   end
 
   test "parametrized queries", ctx do
@@ -126,8 +125,7 @@ defmodule Clickhousex.QueryTest do
       |> NaiveDateTime.truncate(:second)
 
     assert row ==
-             {329, 328, 327, 32, 429, 428, 427, 42, 29.8, 4.0, "This is long", "hello", date,
-              naive_datetime}
+             {329, 328, 327, 32, 429, 428, 427, 42, 29.8, 4.0, "This is long", "hello", date, naive_datetime}
   end
 
   test "nullables", ctx do
@@ -307,8 +305,7 @@ defmodule Clickhousex.QueryTest do
     assert {:ok, _, %{command: :updated, num_rows: 1}} =
              insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?)", [2, "barbie", "bar@bar.com"])
 
-    assert {:ok, _, %{rows: rows}} =
-             select(ctx, "SELECT email FROM {{table}} WHERE id IN (?)", [[1, 2]])
+    assert {:ok, _, %{rows: rows}} = select(ctx, "SELECT email FROM {{table}} WHERE id IN (?)", [[1, 2]])
 
     assert [{"bar@bar.com"}, {"foo@bar.com"}] == Enum.sort(rows)
   end

@@ -23,11 +23,11 @@ defmodule Clickhousex.Mixfile do
   defp deps do
     [
       {:db_connection, "~> 2.2"},
-      {:mint,          "~> 1.1"},
-      {:castore,       "~> 0.1"},
-      {:jason,         "~> 1.2"},
-      {:ex_doc,        "~> 0.22", only: :dev},
-      {:benchee,       "~> 1.0", only: [:dev, :test]}
+      {:mint, "~> 1.1"},
+      {:castore, "~> 0.1"},
+      {:jason, "~> 1.2"},
+      {:ex_doc, "~> 0.22", only: :dev},
+      {:benchee, "~> 1.0", only: [:dev, :test]}
     ]
   end
 
