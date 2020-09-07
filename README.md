@@ -4,9 +4,6 @@ ClickHouse database driver to connect with Elixir application by HTTP interface.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `clickhousex` to your list of dependencies in `mix.exs`:
-
 ```elixir
 def deps do
   [
@@ -16,10 +13,17 @@ end
 ```
 
 ## Start driver
-Call start_link()/1 function and pass connection options:
+Call `start_link()/1` function and pass connection options:
 
 ```elixir
-Clickhousex.start_link([scheme: :http, hostname: "localhost", port: 8123, database: "default", username: "user", password: "654321"])
+Clickhousex.start_link(
+  scheme:   :http,
+  hostname: "localhost",
+  port:     8123,
+  database: "default",
+  username: "user",
+  password: "654321"
+)
 ```
 
 Options expects a keyword list with zero or more of:
@@ -34,7 +38,7 @@ Options expects a keyword list with zero or more of:
 ## Queries examples
 
 ```elixir
-iex(1)> {:ok, pid} = Clickhousex.start_link([scheme: :http, hostname: "localhost", port: 8123, database: "system"])
+iex(1)> {:ok, pid} = Clickhousex.start_link(scheme: :http, hostname: "localhost", port: 8123, database: "system")
 {:ok, #PID<0.195.0>}
 iex(2)> Clickhousex.query(pid, "SHOW TABLES", [])
 {:ok, %Clickhousex.Query{columns: nil, name: "", statement: "SHOW TABLES"},
@@ -48,6 +52,6 @@ iex(2)> Clickhousex.query(pid, "SHOW TABLES", [])
 iex(3)>
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/clickhousex](https://hexdocs.pm/clickhousex).
+## Documentation
+
+Documentation can be found [here](https://hexdocs.pm/clickhousex).
