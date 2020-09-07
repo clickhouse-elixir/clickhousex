@@ -13,7 +13,6 @@ defmodule Clickhousex.StorageTest do
   end
 
   test "returns correct error when creating a database that already exists", ctx do
-    assert {:error, %{code: :database_already_exists}} =
-             schema(ctx, "CREATE DATABASE {{database}}")
+    assert {:error, %{code: :database_already_exists}} = schema(ctx, "CREATE DATABASE {{database}}")
   end
 end

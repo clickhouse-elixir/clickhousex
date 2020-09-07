@@ -14,8 +14,7 @@ defmodule Clickhousex.TableStorageTest do
   end
 
   test "returns correct error when dropping table that doesn't exist", ctx do
-    assert {:error, %{code: :base_table_or_view_not_found}} =
-             schema(ctx, "DROP TABLE table_storage_test.not_exist")
+    assert {:error, %{code: :base_table_or_view_not_found}} = schema(ctx, "DROP TABLE table_storage_test.not_exist")
   end
 
   test "returns correct error when creating a table that already exists", ctx do
