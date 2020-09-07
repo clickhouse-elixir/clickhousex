@@ -3,6 +3,25 @@ defmodule Clickhousex.QueryTest do
   use ClickhouseCase, async: true
 
   alias Clickhousex.Result
+  alias Clickhousex.Query
+
+  test "materialize view create query", ctx do
+    create_statement = """
+    CREATE TABLE IF NOT EXISTS {{table}} (
+      name String
+    ) ENGINE = Memory
+    """
+
+    schema(ctx, create_statement)
+
+    assert {:ok, %Query{type: :create}, _result} =  schema(ctx, """
+    CREATE MATERIALIZED VIEW IF NOT EXISTS material_view
+    ENGINE = MergeTree() ORDER BY name
+    AS SELECT
+      name
+    FROM {{table}}
+    """)
+  end
 
   test "simple select", ctx do
     create_statement = """

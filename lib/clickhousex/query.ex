@@ -28,6 +28,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   alias Clickhousex.HTTPRequest
 
   @values_regex ~r/VALUES/i
+  @create_query_regex ~r/\bCREATE\b/i
   @select_query_regex ~r/\bSELECT\b/i
   @insert_query_regex ~r/\bINSERT\b/i
   @alter_query_regex ~r/\bALTER\b/i
@@ -86,7 +87,8 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp query_type(statement) do
-    with {:select, false} <- {:select, Regex.match?(@select_query_regex, statement)},
+    with {:create, false} <- {:create, Regex.match?(@create_query_regex, statement)},
+         {:select, false} <- {:select, Regex.match?(@select_query_regex, statement)},
          {:insert, false} <- {:insert, Regex.match?(@insert_query_regex, statement)},
          {:alter, false} <- {:alter, Regex.match?(@alter_query_regex, statement)} do
       :unknown
