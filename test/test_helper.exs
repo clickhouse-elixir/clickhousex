@@ -68,9 +68,10 @@ defmodule ClickhouseCase do
   end
 
   setup_all do
-    {:ok, client} = Clickhousex.start_link([])
-
-    {:ok, client: client}
+    # FIXME: move hostname to config
+    with {:ok, client} <- start_supervised({Clickhousex, hostname: "clickhouse"}) do
+      {:ok, client: client}
+    end
   end
 
   setup %{client: client} = ctx do
