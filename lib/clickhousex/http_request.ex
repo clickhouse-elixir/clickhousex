@@ -1,7 +1,7 @@
 defmodule Clickhousex.HTTPRequest do
   defstruct post_data: "", query_string_data: ""
 
-  def new() do
+  def new do
     %__MODULE__{}
   end
 

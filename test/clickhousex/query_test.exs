@@ -2,8 +2,8 @@ defmodule Clickhousex.QueryTest do
   @moduledoc false
   use ClickhouseCase, async: true
 
-  alias Clickhousex.Result
   alias Clickhousex.Query
+  alias Clickhousex.Result
 
   test "materialize view create query", ctx do
     create_statement = """
