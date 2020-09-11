@@ -27,7 +27,8 @@ defmodule Clickhousex.Mixfile do
       {:castore, "~> 0.1"},
       {:jason, "~> 1.2"},
       {:ex_doc, "~> 0.22", only: :dev},
-      {:benchee, "~> 1.0", only: [:dev, :test]}
+      {:benchee, "~> 1.0", only: [:dev, :test]},
+      {:credo, "~> 1.4", only: :dev}
     ]
   end
 
