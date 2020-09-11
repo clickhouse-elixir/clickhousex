@@ -68,8 +68,9 @@ defmodule ClickhouseCase do
   end
 
   setup_all do
-    # FIXME: move hostname to config
-    with {:ok, client} <- start_supervised({Clickhousex, hostname: "clickhouse"}) do
+    hostname = System.get_env("test_db_hostname") || raise "`test_db_hostname' environment variable is not set"
+
+    with {:ok, client} <- start_supervised({Clickhousex, hostname: hostname}) do
       {:ok, client: client}
     end
   end

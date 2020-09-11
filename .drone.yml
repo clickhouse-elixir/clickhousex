@@ -46,4 +46,4 @@ steps:
   - apk add --no-cache git
   - mix local.hex --force
   - mix local.rebar --force
-  - mix test
+  - env test_db_hostname=clickhouse mix test
