@@ -68,7 +68,7 @@ defmodule ClickhouseCase do
   end
 
   setup_all do
-    hostname = System.get_env("test_db_hostname") || raise "`test_db_hostname' environment variable is not set"
+    hostname = System.get_env("test_db_hostname") || "localhost"
 
     with {:ok, client} <- start_supervised({Clickhousex, hostname: hostname}) do
       {:ok, client: client}
