@@ -182,11 +182,11 @@ defmodule Clickhousex.Codec.RowBinary.Old do
 
   defp parse_type(<<"FixedString(", rest::binary>>) do
     case Integer.parse(rest) do
-      {length, rest} ->
-        rest
-        |> String.replace_suffix(")", "")
-
+      {length, ")"} ->
         {:fixed_string, length}
+
+      {_length, rest} ->
+        raise "Expected ')', but got '#{rest}'"
     end
   end
 
