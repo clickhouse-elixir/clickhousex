@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  clickhouse:
+    image: yandex/clickhouse-server
+    restart: always
+    ports:
+    - 8123:8123
+    - 9000:9000
