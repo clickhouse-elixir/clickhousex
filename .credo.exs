@@ -101,7 +101,24 @@
         {Credo.Check.Refactor.VariableRebinding, false},
         {Credo.Check.Warning.LeakyEnvironment, false},
         {Credo.Check.Warning.MapGetUnsafePass, false},
-        {Credo.Check.Warning.UnsafeToAtom, false}
+        {Credo.Check.Warning.UnsafeToAtom, false},
+
+        # Nicene extras
+        {Nicene.AvoidForbiddenNamespaces, false},
+        # Following might be helpful, but is invisible to clients:
+        # consider in future
+        {Nicene.AvoidImportsFromCurrentApplication, false},
+        {Nicene.ConsistentFunctionDefinitions, false},
+        {Nicene.DocumentGraphqlSchema, false},
+        {Nicene.EctoSchemaDirectories, false},
+        {Nicene.FileAndModuleName, []},
+        {Nicene.FileTopToBottom, []},
+        {Nicene.NoSpecsPrivateFunctions, false},
+        {Nicene.PublicFunctionsFirst, []},
+        {Nicene.TestsInTestFolder, []},
+        {Nicene.TrueFalseCaseStatements, false},
+        # This has quite a lot of false positives
+        {Nicene.UnnecessaryPatternMatching, false},
       ]
     }
   ]
