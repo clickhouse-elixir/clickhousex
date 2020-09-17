@@ -6,6 +6,7 @@ defmodule Clickhousex.Mixfile do
       app: :clickhousex,
       version: "0.4.0",
       elixir: "~> 1.5",
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
       source_url: "https://github.com/appodeal/clickhousex"
@@ -18,6 +19,10 @@ defmodule Clickhousex.Mixfile do
       applications: [:logger, :db_connection]
     ]
   end
+
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do

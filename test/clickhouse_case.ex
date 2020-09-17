@@ -1,4 +1,8 @@
 defmodule ClickhouseCase do
+  @moduledoc """
+  Test Case and helpers for testing Clickhousex.
+  """
+
   use ExUnit.CaseTemplate
   alias Clickhousex, as: CH
 
