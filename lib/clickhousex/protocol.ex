@@ -115,7 +115,6 @@ defmodule Clickhousex.Protocol do
     do_query(state.conn, query, params, opts, state)
   end
 
-
   @doc false
   def handle_declare(_query, _params, _opts, state) do
     {:error, :cursors_not_supported, state}
@@ -223,5 +222,6 @@ defmodule Clickhousex.Protocol do
   defp handle_errors({:error, conn, reason}) do
     {:error, conn, Error.exception(reason)}
   end
+
   defp handle_errors(term), do: term
 end
