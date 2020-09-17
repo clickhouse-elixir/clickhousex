@@ -1,4 +1,4 @@
-defmodule Clickhousex.ExtractorTest do
+defmodule Clickhousex.Codec.ExtractorTest do
   use ExUnit.Case
   alias Clickhousex.Codec.Binary
 
