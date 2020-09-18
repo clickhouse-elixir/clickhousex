@@ -3,8 +3,8 @@ defmodule Clickhousex.Protocol do
 
   use DBConnection
 
-  alias Clickhousex.HTTPClient, as: Client
   alias Clickhousex.Error
+  alias Clickhousex.HTTPClient, as: Client
 
   defstruct conn_opts: [], base_address: "", conn: nil
 
@@ -115,6 +115,50 @@ defmodule Clickhousex.Protocol do
     do_query(state.conn, query, params, opts, state)
   end
 
+  @doc false
+  def handle_declare(_query, _params, _opts, state) do
+    {:error, :cursors_not_supported, state}
+  end
+
+  @doc false
+  def handle_deallocate(_query, _cursor, _opts, state) do
+    {:error, :cursors_not_supported, state}
+  end
+
+  def handle_fetch(_query, _cursor, _opts, state) do
+    {:error, :cursors_not_supported, state}
+  end
+
+  @doc false
+  @spec handle_begin(opts :: Keyword.t(), state) :: {:ok, result, state}
+  def handle_begin(_opts, state) do
+    {:ok, %Clickhousex.Result{}, state}
+  end
+
+  @doc false
+  @spec handle_close(query, Keyword.t(), state) :: {:ok, result, state}
+  def handle_close(_query, _opts, state) do
+    {:ok, %Clickhousex.Result{}, state}
+  end
+
+  @doc false
+  @spec handle_commit(opts :: Keyword.t(), state) :: {:ok, result, state}
+  def handle_commit(_opts, state) do
+    {:ok, %Clickhousex.Result{}, state}
+  end
+
+  @doc false
+  @spec handle_info(opts :: Keyword.t(), state) :: {:ok, result, state}
+  def handle_info(_msg, state) do
+    {:ok, state}
+  end
+
+  @doc false
+  @spec handle_rollback(opts :: Keyword.t(), state) :: {:ok, result, state}
+  def handle_rollback(_opts, state) do
+    {:ok, %Clickhousex.Result{}, state}
+  end
+
   defp do_query(conn, query, params, _opts, state) do
     username = state.conn_opts[:username]
     password = state.conn_opts[:password]
@@ -175,53 +219,9 @@ defmodule Clickhousex.Protocol do
   end
 
   @doc false
-  def handle_declare(_query, _params, _opts, state) do
-    {:error, :cursors_not_supported, state}
-  end
-
-  @doc false
-  def handle_deallocate(_query, _cursor, _opts, state) do
-    {:error, :cursors_not_supported, state}
-  end
-
-  def handle_fetch(_query, _cursor, _opts, state) do
-    {:error, :cursors_not_supported, state}
-  end
-
-  @doc false
   defp handle_errors({:error, conn, reason}) do
     {:error, conn, Error.exception(reason)}
   end
 
   defp handle_errors(term), do: term
-
-  @doc false
-  @spec handle_begin(opts :: Keyword.t(), state) :: {:ok, result, state}
-  def handle_begin(_opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
-
-  @doc false
-  @spec handle_close(query, Keyword.t(), state) :: {:ok, result, state}
-  def handle_close(_query, _opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
-
-  @doc false
-  @spec handle_commit(opts :: Keyword.t(), state) :: {:ok, result, state}
-  def handle_commit(_opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
-
-  @doc false
-  @spec handle_info(opts :: Keyword.t(), state) :: {:ok, result, state}
-  def handle_info(_msg, state) do
-    {:ok, state}
-  end
-
-  @doc false
-  @spec handle_rollback(opts :: Keyword.t(), state) :: {:ok, result, state}
-  def handle_rollback(_opts, state) do
-    {:ok, %Clickhousex.Result{}, state}
-  end
 end

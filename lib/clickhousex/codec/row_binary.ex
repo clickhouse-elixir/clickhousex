@@ -122,16 +122,6 @@ defmodule Clickhousex.Codec.RowBinary do
     extract_row(data, column_types, [], state)
   end
 
-  defp extract_row(<<data::binary>>, [], row_data, state(rows: rows, count: count) = state) do
-    row = row_data |> Enum.reverse() |> List.to_tuple()
-    new_state = state(state, rows: [row | rows], count: count + 1)
-    extract_rows(data, new_state)
-  end
-
-  defp extract_row(<<data::binary>>, [type | types], row, state) do
-    extract_field(data, type, types, row, state)
-  end
-
   defp extract_field(<<>>, type, types, row, state) do
     {:resume, &extract_field(&1, type, types, row, state)}
   end
@@ -180,6 +170,16 @@ defmodule Clickhousex.Codec.RowBinary do
     defp unquote(extractor_name(type))(<<data::binary>>, field_value, types, row, state) do
       extract_row(data, types, [field_value | row], state)
     end
+  end
+
+  defp extract_row(<<data::binary>>, [], row_data, state(rows: rows, count: count) = state) do
+    row = row_data |> Enum.reverse() |> List.to_tuple()
+    new_state = state(state, rows: [row | rows], count: count + 1)
+    extract_rows(data, new_state)
+  end
+
+  defp extract_row(<<data::binary>>, [type | types], row, state) do
+    extract_field(data, type, types, row, state)
   end
 
   defp parse_type(<<"Nullable(", type::binary>>) do

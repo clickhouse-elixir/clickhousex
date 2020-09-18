@@ -19,7 +19,7 @@ defmodule Clickhousex do
   @type conn :: DBConnection.conn()
 
   @timeout 60_000
-  def timeout(), do: @timeout
+  def timeout, do: @timeout
 
   ### PUBLIC API ###
 

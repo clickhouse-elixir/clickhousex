@@ -112,9 +112,10 @@ defmodule Clickhousex.Codec.Binary do
   end
 
   def decode(bytes, {:list, data_type}) do
-    with {:ok, count, rest} <- decode(bytes, :varint) do
-      decode_list(rest, data_type, count, [])
-    else
+    case decode(bytes, :varint) do
+      {:ok, count, rest} ->
+        decode_list(rest, data_type, count, [])
+
       _ ->
         decoder = fn more_data -> decode(bytes <> more_data, {:list, data_type}) end
         {:resume, decoder}

@@ -1,0 +1,46 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+services:
+- name: clickhouse
+  image: yandex/clickhouse-server
+
+steps:
+- name: deps
+  image: elixir:alpine
+  commands:
+  - apk add --no-cache git
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix deps.get
+
+- name: build
+  image: elixir:alpine
+  commands:
+  - apk add --no-cache git
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix compile --warnings-as-errors
+
+- name: test
+  image: elixir:alpine
+  commands:
+  - apk add --no-cache git
+  - mix local.hex --force
+  - mix local.rebar --force
+  - env test_db_hostname=clickhouse mix test
+
+- name: format
+  image: elixir:alpine
+  commands:
+  - mix format --check-formatted
+
+- name: lint
+  image: elixir:alpine
+  commands:
+  - apk add --no-cache git
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix credo -a
