@@ -34,7 +34,8 @@ defmodule Clickhousex.Mixfile do
       {:ex_doc, "~> 0.22", only: :dev},
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.2", only: :dev},
-      {:nicene, "~> 0.4.0", only: :dev}
+      {:nicene, "~> 0.4.0", only: :dev},
+      {:dialyxir, "~> 1.0.0", only: :dev}
     ]
   end
 
