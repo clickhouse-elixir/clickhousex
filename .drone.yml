@@ -37,10 +37,18 @@ steps:
   commands:
   - mix format --check-formatted
 
-- name: lint
+- name: dialyzer
   image: elixir:alpine
   commands:
   - apk add --no-cache git
   - mix local.hex --force
   - mix local.rebar --force
-  - mix credo -a
+  - mix dialyzer || true
+
+- name: credo
+  image: elixir:alpine
+  commands:
+  - apk add --no-cache git
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix credo -a || true
