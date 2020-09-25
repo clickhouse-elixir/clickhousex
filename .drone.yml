@@ -38,7 +38,7 @@ steps:
   - mix format --check-formatted
 
 - name: dialyzer
-  image: elixir:alpine
+  image: clickhouseelixir/dialyxir:1.10.4-alpine
   commands:
   - apk add --no-cache git
   - mix local.hex --force
