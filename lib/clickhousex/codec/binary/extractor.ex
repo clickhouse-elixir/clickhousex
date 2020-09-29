@@ -111,113 +111,64 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
+  defp varint_pattern(vars) do
+    case Enum.reverse(vars) do
+      [] ->
+        quote do: <<rest::binary>>
+
+      [last | rest] ->
+        tag = quote do: 1 :: size(1)
+        init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
+        patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
+        {:<<>>, [], patterns}
+    end
+  end
+
+  defp varint_compose([_ | _] = exprs) do
+    exprs
+    |> Enum.map(fn
+      {name, 0} ->
+        Macro.var(name, __MODULE__)
+
+      {name, shift} ->
+        {:<<<, [], [Macro.var(name, __MODULE__), shift]}
+    end)
+    |> Enum.reduce(&{:|||, [], [&2, &1]})
+  end
+
   defp build_extractor(:varint, arg_name, extractor_name, landing_call, [_ | non_binary_args]) do
     extractor_args = reject_argument(non_binary_args, arg_name)
     int_variable = Macro.var(arg_name, nil)
+
+    vars = quote do: [a, b, c, d, e, f, g, h, i, j]
+
+    varint_clauses =
+      for i <- 1..10 do
+        args = Enum.take(vars, i)
+
+        pattern = varint_pattern(args)
+
+        int =
+          args
+          |> Enum.reverse()
+          |> Enum.with_index()
+          |> Enum.map(fn {{name, _, _}, index} -> {name, index * 7} end)
+          |> varint_compose()
+
+        quote do
+          def unquote(extractor_name)(unquote(pattern), unquote_splicing(extractor_args)) do
+            unquote(int_variable) = unquote(int)
+            unquote(landing_call)
+          end
+        end
+      end
 
     quote do
       def unquote(extractor_name)(<<>>, unquote_splicing(extractor_args)) do
         {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args))}
       end
 
-      def unquote(extractor_name)(
-            <<0::size(1), unquote(int_variable)::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 0::size(1), b::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 0::size(1), c::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 0::size(1), d::size(7),
-              rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              0::size(1), e::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 0::size(1), f::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 0::size(1), g::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 0::size(1), h::size(7),
-              rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 |||
-            a
-
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
-              0::size(1), i::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          i <<< 56 |||
-            h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 |||
-            a
-
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
-              1::size(1), i::size(7), 0::size(1), j::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          j <<< 63 ||| i <<< 56 ||| h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 |||
-            c <<< 14 ||| b <<< 7 ||| a
-
-        unquote(landing_call)
-      end
+      unquote_splicing(varint_clauses)
 
       def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args)) do
         {:resume, fn more_data -> unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args)) end}
