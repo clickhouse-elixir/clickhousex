@@ -111,31 +111,6 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
-  defp varint_pattern(vars) do
-    case Enum.reverse(vars) do
-      [] ->
-        quote do: <<rest::binary>>
-
-      [last | rest] ->
-        tag = quote do: 1 :: size(1)
-        init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
-        patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
-        {:<<>>, [], patterns}
-    end
-  end
-
-  defp varint_compose([_ | _] = exprs) do
-    exprs
-    |> Enum.map(fn
-      {name, 0} ->
-        Macro.var(name, __MODULE__)
-
-      {name, shift} ->
-        {:<<<, [], [Macro.var(name, __MODULE__), shift]}
-    end)
-    |> Enum.reduce(&{:|||, [], [&2, &1]})
-  end
-
   defp build_extractor(:varint, arg_name, extractor_name, landing_call, [_ | non_binary_args]) do
     extractor_args = reject_argument(non_binary_args, arg_name)
     int_variable = Macro.var(arg_name, nil)
@@ -145,15 +120,8 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     varint_clauses =
       for i <- 1..10 do
         args = Enum.take(vars, i)
-
         pattern = varint_pattern(args)
-
-        int =
-          args
-          |> Enum.reverse()
-          |> Enum.with_index()
-          |> Enum.map(fn {{name, _, _}, index} -> {name, index * 7} end)
-          |> varint_compose()
+        int = varint_compose(args)
 
         quote do
           def unquote(extractor_name)(unquote(pattern), unquote_splicing(extractor_args)) do
@@ -174,6 +142,30 @@ defmodule Clickhousex.Codec.Binary.Extractor do
         {:resume, fn more_data -> unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args)) end}
       end
     end
+  end
+
+  defp varint_pattern(vars) do
+    case Enum.reverse(vars) do
+      [] ->
+        quote do: <<rest::binary>>
+
+      [last | rest] ->
+        tag = quote do: 1 :: size(1)
+        init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
+        patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
+        {:<<>>, [], patterns}
+    end
+  end
+
+  defp varint_compose([_ | _] = exprs) do
+    exprs
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {var, 0} -> var
+      {var, index} -> {:<<<, [], [var, index * 7]}
+    end)
+    |> Enum.reduce(&{:|||, [], [&2, &1]})
   end
 
   @int_extractors [
