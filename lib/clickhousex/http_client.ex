@@ -1,5 +1,7 @@
 defmodule Clickhousex.HTTPClient do
   defmodule Response do
+    @moduledoc false
+
     defstruct ref: nil, codec_state: nil, status: nil, error_buffer: [], complete?: false
 
     @codec Application.get_env(:clickhousex, :codec, Clickhousex.Codec.JSON)
