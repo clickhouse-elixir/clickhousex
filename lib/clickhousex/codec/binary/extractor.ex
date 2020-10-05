@@ -115,114 +115,56 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     extractor_args = reject_argument(non_binary_args, arg_name)
     int_variable = Macro.var(arg_name, nil)
 
+    vars = quote do: [a, b, c, d, e, f, g, h, i, j]
+
+    # ZigZag encoding is defined for arbitrary sized integers, but for
+    # our purposes up to 10 parts are enough. Let's unroll the decoding loop.
+    extractor_clauses =
+      for parts_count <- 1..10 do
+        vars_for_clause = Enum.take(vars, parts_count)
+        pattern = varint_pattern(vars_for_clause)
+        decoding = varint_decoding(vars_for_clause)
+
+        quote do
+          def unquote(extractor_name)(unquote(pattern), unquote_splicing(extractor_args)) do
+            unquote(int_variable) = unquote(decoding)
+            unquote(landing_call)
+          end
+        end
+      end
+
     quote do
       def unquote(extractor_name)(<<>>, unquote_splicing(extractor_args)) do
         {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args))}
       end
 
-      def unquote(extractor_name)(
-            <<0::size(1), unquote(int_variable)::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 0::size(1), b::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 0::size(1), c::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 0::size(1), d::size(7),
-              rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              0::size(1), e::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 0::size(1), f::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 0::size(1), g::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) = g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 ||| a
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 0::size(1), h::size(7),
-              rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 |||
-            a
-
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
-              0::size(1), i::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          i <<< 56 |||
-            h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 ||| c <<< 14 ||| b <<< 7 |||
-            a
-
-        unquote(landing_call)
-      end
-
-      def unquote(extractor_name)(
-            <<1::size(1), a::size(7), 1::size(1), b::size(7), 1::size(1), c::size(7), 1::size(1), d::size(7),
-              1::size(1), e::size(7), 1::size(1), f::size(7), 1::size(1), g::size(7), 1::size(1), h::size(7),
-              1::size(1), i::size(7), 0::size(1), j::size(7), rest::binary>>,
-            unquote_splicing(extractor_args)
-          ) do
-        unquote(int_variable) =
-          j <<< 63 ||| i <<< 56 ||| h <<< 49 ||| g <<< 42 ||| f <<< 35 ||| e <<< 28 ||| d <<< 21 |||
-            c <<< 14 ||| b <<< 7 ||| a
-
-        unquote(landing_call)
-      end
+      unquote_splicing(extractor_clauses)
 
       def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args)) do
         {:resume, fn more_data -> unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args)) end}
       end
     end
+  end
+
+  # `vars` are variables for binding varint parts, from high to low
+  defp varint_pattern([_ | _] = vars) do
+    [last | rest] = Enum.reverse(vars)
+    tag = quote do: 1 :: size(1)
+    init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
+    patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
+    {:<<>>, [], patterns}
+  end
+
+  # `vars` are varint parts, from high to low
+  defp varint_decoding([_ | _] = vars) do
+    vars
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {var, 0} -> var
+      {var, index} -> {:<<<, [], [var, index * 7]}
+    end)
+    |> Enum.reduce(&{:|||, [], [&2, &1]})
   end
 
   @int_extractors [

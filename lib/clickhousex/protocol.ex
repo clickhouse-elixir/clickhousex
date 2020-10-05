@@ -22,40 +22,37 @@ defmodule Clickhousex.Protocol do
   @ping_params DBConnection.Query.encode(@ping_query, [], [])
 
   @doc false
-  @spec connect(opts :: Keyword.t()) ::
-          {:ok, state}
-          | {:error, Exception.t()}
+  @spec connect(opts :: Keyword.t()) :: {:ok, state} | {:error, Exception.t()}
   def connect(opts) do
     scheme = opts[:scheme] || :http
     hostname = opts[:hostname] || "localhost"
     port = opts[:port] || 8123
     database = opts[:database] || "default"
-    username = opts[:username] || nil
-    password = opts[:password] || nil
+    username = opts[:username]
+    password = opts[:password]
     timeout = opts[:timeout] || Clickhousex.timeout()
 
     {:ok, conn} = Client.connect(scheme, hostname, port)
 
-    case Client.request(conn, @ping_query, @ping_params, timeout, username, password, database) do
-      {:ok, conn, {:selected, _, _}} ->
-        {
-          :ok,
-          %__MODULE__{
-            conn: conn,
-            conn_opts: [
-              scheme: scheme,
-              hostname: hostname,
-              port: port,
-              database: database,
-              username: username,
-              password: password,
-              timeout: timeout
-            ]
-          }
-        }
+    response = Client.request(conn, @ping_query, @ping_params, timeout, username, password, database)
 
-      resp ->
-        resp
+    with {:ok, conn, {:selected, _, _}} <- response do
+      conn_opts = [
+        scheme: scheme,
+        hostname: hostname,
+        port: port,
+        database: database,
+        username: username,
+        password: password,
+        timeout: timeout
+      ]
+
+      state = %__MODULE__{
+        conn: conn,
+        conn_opts: conn_opts
+      }
+
+      {:ok, state}
     end
   end
 
