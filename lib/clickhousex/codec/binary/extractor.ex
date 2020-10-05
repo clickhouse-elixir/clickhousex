@@ -117,15 +117,17 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
     vars = quote do: [a, b, c, d, e, f, g, h, i, j]
 
-    varint_clauses =
-      for i <- 1..10 do
-        args = Enum.take(vars, i)
-        pattern = varint_pattern(args)
-        int = varint_compose(args)
+    # ZigZag encoding is defined for arbitrary sized integers, but for
+    # our purposes up to 10 parts are enough. Let's unroll the decoding loop.
+    extractor_clauses =
+      for parts_count <- 1..10 do
+        vars_for_clause = Enum.take(vars, parts_count)
+        pattern = varint_pattern(vars_for_clause)
+        decoding = varint_decoding(vars_for_clause)
 
         quote do
           def unquote(extractor_name)(unquote(pattern), unquote_splicing(extractor_args)) do
-            unquote(int_variable) = unquote(int)
+            unquote(int_variable) = unquote(decoding)
             unquote(landing_call)
           end
         end
@@ -136,7 +138,7 @@ defmodule Clickhousex.Codec.Binary.Extractor do
         {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args))}
       end
 
-      unquote_splicing(varint_clauses)
+      unquote_splicing(extractor_clauses)
 
       def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args)) do
         {:resume, fn more_data -> unquote(extractor_name)(rest <> more_data, unquote_splicing(extractor_args)) end}
@@ -144,21 +146,18 @@ defmodule Clickhousex.Codec.Binary.Extractor do
     end
   end
 
-  defp varint_pattern(vars) do
-    case Enum.reverse(vars) do
-      [] ->
-        quote do: <<rest::binary>>
-
-      [last | rest] ->
-        tag = quote do: 1 :: size(1)
-        init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
-        patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
-        {:<<>>, [], patterns}
-    end
+  # `vars` are variables for binding varint parts, from high to low
+  defp varint_pattern([_ | _] = vars) do
+    [last | rest] = Enum.reverse(vars)
+    tag = quote do: 1 :: size(1)
+    init = quote do: [0 :: size(1), unquote(last) :: size(7), rest :: binary]
+    patterns = Enum.reduce(rest, init, &[tag, quote(do: unquote(&1) :: size(7)) | &2])
+    {:<<>>, [], patterns}
   end
 
-  defp varint_compose([_ | _] = exprs) do
-    exprs
+  # `vars` are varint parts, from high to low
+  defp varint_decoding([_ | _] = vars) do
+    vars
     |> Enum.reverse()
     |> Enum.with_index()
     |> Enum.map(fn
