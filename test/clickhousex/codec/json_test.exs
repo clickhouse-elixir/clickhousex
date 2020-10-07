@@ -88,5 +88,14 @@ defmodule Clickhousex.Codec.JSONTest do
 
       assert error == {:error, {:garbage, "Garbage"}}
     end
+
+    test "unmatched paren (nullable)" do
+      error =
+        %{meta: [%{name: "zs", type: "Nullable(UInt16"}], data: [], rows: 0}
+        |> Jason.encode!()
+        |> JSON.decode()
+
+      assert error == {:error, {:unmatched_paren, "UInt16"}}
+    end
   end
 end

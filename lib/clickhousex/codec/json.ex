@@ -72,8 +72,15 @@ defmodule Clickhousex.Codec.JSON do
   defp get_parser("Date" <> rest), do: {:ok, &Date.from_iso8601!/1, rest}
 
   defp get_parser("Nullable(" <> rest) do
-    with {:ok, parser, ")" <> rest} <- get_parser(rest) do
-      {:ok, &(&1 && parser.(&1)), rest}
+    case get_parser(rest) do
+      {:ok, parser, ")" <> rest} ->
+        {:ok, &if(&1, do: parser.(&1)), rest}
+
+      {:ok, _parser, _rest} ->
+        {:error, {:unmatched_paren, rest}}
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -85,8 +92,8 @@ defmodule Clickhousex.Codec.JSON do
       {:ok, _parser, _rest} ->
         {:error, {:unmatched_paren, rest}}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _} = error ->
+        error
     end
   end
 
