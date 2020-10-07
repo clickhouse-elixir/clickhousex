@@ -42,7 +42,7 @@ defmodule Clickhousex.Codec.JSON do
   @impl true
   defdelegate encode(query, replacements, params), to: Clickhousex.Codec.Values
 
-  @spec get_parsers(map) :: {:ok, [(term -> term)]} | {:error, term}
+  @spec get_parsers([map]) :: {:ok, [(term -> term)]} | {:error, term}
   defp get_parsers(meta) do
     parsers =
       for %{"type" => type} <- meta do
