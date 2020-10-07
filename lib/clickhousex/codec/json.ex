@@ -1,112 +1,104 @@
 defmodule Clickhousex.Codec.JSON do
-  alias Clickhousex.Codec
-  @behaviour Codec
+  @behaviour Clickhousex.Codec
 
-  defdelegate encode(query, replacements, params), to: Codec.Values
-
-  @impl Codec
+  @impl true
   def request_format do
     "Values"
   end
 
-  @impl Codec
+  @impl true
   def response_format do
     "JSONCompact"
   end
 
-  @impl Codec
+  @impl true
   def new do
     []
   end
 
-  @impl Codec
+  @impl true
   def append(state, data) do
     [state, data]
   end
 
-  @impl Codec
+  @impl true
   def decode(response) do
-    case Jason.decode(response) do
-      {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} ->
-        column_names = Enum.map(meta, & &1["name"])
-        column_types = Enum.map(meta, & &1["type"])
+    with {:ok, %{"meta" => meta, "data" => data, "rows" => row_count}} <- Jason.decode(response),
+         {:ok, column_parsers} <- get_parsers(meta) do
+      column_names = Enum.map(IO.inspect(meta, label: "META"), & &1["name"])
 
-        rows =
-          for row <- data do
-            for {raw_value, column_type} <- Enum.zip(row, column_types) do
-              to_native(column_type, raw_value)
-            end
-            |> List.to_tuple()
-          end
+      rows =
+        for row <- data do
+          row
+          |> Enum.zip(column_parsers)
+          |> Enum.map(fn {raw_value, parser} -> parser.(raw_value) end)
+          |> List.to_tuple()
+        end
 
-        {:ok, %{column_names: column_names, rows: rows, count: row_count}}
+      {:ok, %{column_names: column_names, rows: rows, count: row_count}}
     end
   end
 
-  defp to_native(_, nil) do
-    nil
+  @impl true
+  defdelegate encode(query, replacements, params), to: Clickhousex.Codec.Values
+
+  @spec get_parsers(map) :: {:ok, [(term -> term)]} | {:error, term}
+  defp get_parsers(meta) do
+    parsers =
+      for %{"type" => type} <- meta do
+        case get_parser(type) do
+          {:ok, parser, ""} ->
+            parser
+
+          {:ok, _parser, rest} ->
+            throw({:error, {:rest, type, rest}})
+
+          {:error, reason} ->
+            throw({:error, reason})
+        end
+      end
+
+    {:ok, parsers}
+  catch
+    {:error, reason} -> {:error, reason}
   end
 
-  defp to_native(<<"Nullable(", type::binary>>, value) do
-    type = String.replace_suffix(type, ")", "")
-    to_native(type, value)
-  end
+  @spec get_parser(String.t()) :: {:ok, (term -> term), String.t()} | {:error, term}
+  defp get_parser("Int64" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("Int32" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("Int16" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("Int8" <> rest), do: {:ok, &id/1, rest}
 
-  defp to_native(<<"Array(", type::binary>>, value) do
-    type = String.replace_suffix(type, ")", "")
-    Enum.map(value, &to_native(type, &1))
-  end
+  defp get_parser("UInt64" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("UInt32" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("UInt16" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("UInt8" <> rest), do: {:ok, &id/1, rest}
 
-  defp to_native("Float" <> _, value) when is_integer(value) do
-    1.0 * value
-  end
+  defp get_parser("Float64" <> rest), do: {:ok, &id/1, rest}
+  defp get_parser("Float32" <> rest), do: {:ok, &id/1, rest}
 
-  defp to_native("Int64", value) do
-    String.to_integer(value)
-  end
+  defp get_parser("DateTime" <> rest), do: {:ok, &NaiveDateTime.from_iso8601!/1, rest}
 
-  defp to_native("Date", value) do
-    {:ok, date} = to_date(value)
-    date
-  end
+  defp get_parser("Date" <> rest), do: {:ok, &Date.from_iso8601!/1, rest}
 
-  defp to_native("DateTime", value) do
-    [date, time] = String.split(value, " ")
-
-    with {:ok, date} <- to_date(date),
-         {:ok, time} <- to_time(time),
-         {:ok, naive} <- NaiveDateTime.new(date, time) do
-      naive
+  defp get_parser("Nullable(" <> rest) do
+    with {:ok, parser, ")" <> rest} <- get_parser(rest) do
+      {:ok, &(&1 && parser.(&1)), rest}
     end
   end
 
-  defp to_native("UInt" <> _, value) when is_bitstring(value) do
-    String.to_integer(value)
+  defp get_parser("Array(" <> rest) do
+    case get_parser(rest) do
+      {:ok, parser, ")" <> rest} ->
+        {:ok, &Enum.map(&1, parser), rest}
+      {:ok, _parser, _rest} ->
+        {:error, {:unmatched_paren, rest}}
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
-  defp to_native("Int" <> _, value) when is_bitstring(value) do
-    String.to_integer(value)
-  end
+  defp get_parser(type), do: {:error, {:unknown_type, type}}
 
-  defp to_native(_, value) do
-    value
-  end
-
-  defp to_date(date_string) do
-    [year, month, day] =
-      date_string
-      |> String.split("-")
-      |> Enum.map(&String.to_integer/1)
-
-    Date.new(year, month, day)
-  end
-
-  defp to_time(time_string) do
-    [h, m, s] =
-      time_string
-      |> String.split(":")
-      |> Enum.map(&String.to_integer/1)
-
-    Time.new(h, m, s)
-  end
+  defp id(x), do: x
 end
