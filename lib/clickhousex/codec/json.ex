@@ -42,24 +42,21 @@ defmodule Clickhousex.Codec.JSON do
   @impl true
   defdelegate encode(query, replacements, params), to: Clickhousex.Codec.Values
 
-  @spec get_parsers([map]) :: {:ok, [(term -> term)]} | {:error, term}
-  defp get_parsers(meta) do
-    result =
-      Enum.reduce_while(meta, [], fn %{"type" => type}, acc ->
-        case get_parser(type) do
-          {:ok, parser, ""} ->
-            {:cont, [parser | acc]}
+  @spec get_parsers([map], [(term -> term)]) :: {:ok, [(term -> term)]} | {:error, term}
+  defp get_parsers(meta, acc \\ [])
 
-          {:ok, _parser, rest} ->
-            {:halt, {:error, {:garbage, rest}}}
+  defp get_parsers([], acc), do: {:ok, Enum.reverse(acc)}
 
-          {:error, _} = error ->
-            {:halt, error}
-        end
-      end)
+  defp get_parsers([%{"type" => type} | meta], acc) do
+    case get_parser(type) do
+      {:ok, parser, ""} ->
+        get_parsers(meta, [parser | acc])
 
-    with parsers when is_list(parsers) <- result do
-      {:ok, Enum.reverse(parsers)}
+      {:ok, _parser, rest} ->
+        {:error, {:garbage, rest}}
+
+      {:error, _} = error ->
+        error
     end
   end
 
