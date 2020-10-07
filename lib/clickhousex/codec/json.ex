@@ -44,23 +44,23 @@ defmodule Clickhousex.Codec.JSON do
 
   @spec get_parsers([map]) :: {:ok, [(term -> term)]} | {:error, term}
   defp get_parsers(meta) do
-    parsers =
-      for %{"type" => type} <- meta do
+    result =
+      Enum.reduce_while(meta, [], fn %{"type" => type}, acc ->
         case get_parser(type) do
           {:ok, parser, ""} ->
-            parser
+            {:cont, [parser | acc]}
 
           {:ok, _parser, rest} ->
-            throw({:error, {:rest, type, rest}})
+            {:halt, {:error, {:garbage, rest}}}
 
-          {:error, reason} ->
-            throw({:error, reason})
+          {:error, _} = error ->
+            {:halt, error}
         end
-      end
+      end)
 
-    {:ok, parsers}
-  catch
-    {:error, reason} -> {:error, reason}
+    with parsers when is_list(parsers) <- result do
+      {:ok, Enum.reverse(parsers)}
+    end
   end
 
   @literal_types ~w(Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64 Float32 Float64)
@@ -84,8 +84,10 @@ defmodule Clickhousex.Codec.JSON do
     case get_parser(rest) do
       {:ok, parser, ")" <> rest} ->
         {:ok, &Enum.map(&1, parser), rest}
+
       {:ok, _parser, _rest} ->
         {:error, {:unmatched_paren, rest}}
+
       {:error, reason} ->
         {:error, reason}
     end
