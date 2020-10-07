@@ -86,7 +86,7 @@ defmodule Clickhousex.Codec.JSONTest do
         |> Jason.encode!()
         |> JSON.decode()
 
-      assert error == {:error, {:rest, "Nullable(Int64)Garbage", "Garbage"}}
+      assert error == {:error, {:garbage, "Garbage"}}
     end
   end
 end
