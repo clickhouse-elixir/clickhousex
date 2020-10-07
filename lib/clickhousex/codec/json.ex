@@ -63,19 +63,12 @@ defmodule Clickhousex.Codec.JSON do
     {:error, reason} -> {:error, reason}
   end
 
+  @literal_types ~w(Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64 Float32 Float64)
+
   @spec get_parser(String.t()) :: {:ok, (term -> term), String.t()} | {:error, term}
-  defp get_parser("Int64" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("Int32" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("Int16" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("Int8" <> rest), do: {:ok, &id/1, rest}
-
-  defp get_parser("UInt64" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("UInt32" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("UInt16" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("UInt8" <> rest), do: {:ok, &id/1, rest}
-
-  defp get_parser("Float64" <> rest), do: {:ok, &id/1, rest}
-  defp get_parser("Float32" <> rest), do: {:ok, &id/1, rest}
+  for type <- @literal_types do
+    defp get_parser(unquote(type) <> rest), do: {:ok, &id/1, rest}
+  end
 
   defp get_parser("DateTime" <> rest), do: {:ok, &NaiveDateTime.from_iso8601!/1, rest}
 
