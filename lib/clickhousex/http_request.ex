@@ -1,4 +1,6 @@
 defmodule Clickhousex.HTTPRequest do
+  @moduledoc false
+
   defstruct post_data: "", query_string_data: ""
 
   def new do

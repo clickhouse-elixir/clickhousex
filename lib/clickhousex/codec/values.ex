@@ -1,4 +1,12 @@
 defmodule Clickhousex.Codec.Values do
+  @moduledoc """
+  Routines for [Values][1] input/output format.
+
+  **NB**: This module does not implement `Clickhousex.Codec` behaviour.
+
+  [1]: https://clickhouse.tech/docs/en/interfaces/formats/#data-format-values
+  """
+
   alias Clickhousex.Query
 
   def encode(%Query{param_count: 0, type: :insert}, _, []) do

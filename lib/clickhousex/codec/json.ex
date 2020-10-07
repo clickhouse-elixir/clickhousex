@@ -1,4 +1,13 @@
 defmodule Clickhousex.Codec.JSON do
+  @moduledoc """
+  `Clickhousex.Codec` implementation for JSON output format.
+
+  See [JSON][1], [JSONCompact][2].
+
+  [1]: https://clickhouse.tech/docs/en/interfaces/formats/#json
+  [2]: https://clickhouse.tech/docs/en/interfaces/formats/#jsoncompact
+  """
+
   alias Clickhousex.Codec
   @behaviour Codec
 

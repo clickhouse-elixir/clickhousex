@@ -1,4 +1,6 @@
 defmodule Clickhousex.Codec.Binary do
+  @moduledoc false
+
   use Bitwise
 
   def encode(:varint, num) when num < 128, do: <<num>>

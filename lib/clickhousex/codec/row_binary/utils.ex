@@ -1,4 +1,10 @@
 defmodule Clickhousex.Codec.RowBinary.Utils do
+  @moduledoc """
+  Utility functions for `Clickhousex.Codec.RowBinary`, can not be
+  defined in the same module because they are required at compile
+  time.
+  """
+
   def type_permutations(type) do
     [
       type,
