@@ -66,7 +66,7 @@ defmodule Clickhousex.Codec.JSONTest do
       error =
         %{meta: [%{name: "bars", type: "Array(Bar)"}], data: [], rows: 0}
         |> Jason.encode!()
-	|> JSON.decode()
+        |> JSON.decode()
 
       assert error == {:error, {:unknown_type, "Bar)"}}
     end
