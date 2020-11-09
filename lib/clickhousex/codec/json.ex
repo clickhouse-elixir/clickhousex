@@ -64,7 +64,7 @@ defmodule Clickhousex.Codec.JSON do
 
   @spec get_parser(String.t()) :: {:ok, (term -> term), String.t()} | {:error, term}
   for type <- @literal_types do
-    defp get_parser(unquote(type) <> rest), do: {:ok, &id/1, rest}
+    defp get_parser(unquote(type) <> rest), do: {:ok, &Function.identity/1, rest}
   end
 
   defp get_parser("DateTime" <> rest), do: {:ok, &NaiveDateTime.from_iso8601!/1, rest}
@@ -98,6 +98,4 @@ defmodule Clickhousex.Codec.JSON do
   end
 
   defp get_parser(type), do: {:error, {:unknown_type, type}}
-
-  defp id(x), do: x
 end

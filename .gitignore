@@ -4,3 +4,6 @@
 *.iml
 /doc
 .elixir_ls/
+
+# test --cover files
+/cover/
