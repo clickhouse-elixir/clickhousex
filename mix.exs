@@ -9,7 +9,7 @@ defmodule Clickhousex.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
-      source_url: "https://github.com/appodeal/clickhousex"
+      source_url: "https://github.com/clickhouse-elixir/clickhousex"
     ]
   end
 
@@ -44,7 +44,7 @@ defmodule Clickhousex.Mixfile do
       description: description(),
       maintainers: maintainers(),
       licenses: ["Apache 2.0"],
-      links: %{"GitHub" => "https://github.com/appodeal/clickhousex"}
+      links: %{"GitHub" => "https://github.com/clickhouse-elixir/clickhousex"}
     ]
   end
 
@@ -53,6 +53,13 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp maintainers do
-    ["Roman Chudov", "Konstantin Grabar", "Ivan Zinoviev", "Evgeniy Shurmin", "Alexey Lukyanov"]
+    ["Roman Chudov",
+     "Konstantin Grabar",
+     "Ivan Zinoviev",
+     "Evgeniy Shurmin",
+     "Alexey Lukyanov",
+     "Yaroslav Rogov",
+     "Ivan Sokolov",
+     "Georgy Sychev"]
   end
 end
