@@ -16,7 +16,7 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: [:logger, :db_connection]
+      extra_applications: [:logger]
     ]
   end
 
@@ -27,10 +27,10 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 2.2"},
-      {:mint, "~> 1.1"},
+      {:db_connection, "~> 2.0"},
+      {:mint, "~> 1.0"},
       {:castore, "~> 0.1"},
-      {:jason, "~> 1.2"},
+      {:jason, "~> 1.0"},
       {:ex_doc, "~> 0.22", only: :dev},
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.2", only: :dev},
