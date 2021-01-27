@@ -7,7 +7,7 @@ defmodule Clickhousex.Codec.RowBinary do
        config :clickhousex, codec: Clickhousex.Codec.RowBinary
 
   """
-  alias Clickhousex.{Codec, Codec.Binary.Extractor, Codec.RowBinary.Utils}
+  alias Clickhousex.{Codec, Codec.Binary.Extractor, Codec.RowBinary.Utils, Codec.Binary}
   import Utils
   use Extractor
 
@@ -136,6 +136,17 @@ defmodule Clickhousex.Codec.RowBinary do
     end
   end
 
+  # support for all additions (micros, millis, micros)
+  defp extract_field(<<data::binary>>, {:datetime64, precision} = _datetime64, types, row, state) do
+    {:ok, timestamp, rest} = Binary.decode(data, :i64)
+    divider = :math.pow(10, precision) |> trunc()
+    unix_timestamp = div(timestamp, divider)
+    micros = rem(timestamp, divider)
+    elixir_timestamp = unix_timestamp |> DateTime.from_unix! |> DateTime.add(micros, :microsecond)
+    extract_row(rest, types, [elixir_timestamp | row], state)
+  end
+
+
   @scalar_types [
     :i64,
     :i32,
@@ -209,6 +220,17 @@ defmodule Clickhousex.Codec.RowBinary do
 
     {:array, rest_type}
   end
+
+  defp parse_type(<<"DateTime64(", rest::binary>>) do
+    case Integer.parse(rest) do
+      {length, rest} ->
+        rest
+        |> String.replace_suffix(")", "")
+
+        {:datetime64, length}
+    end
+  end
+
 
   # Boolean isn't represented below because clickhouse has no concept
   # of booleans.
