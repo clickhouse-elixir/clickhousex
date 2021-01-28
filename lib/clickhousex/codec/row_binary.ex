@@ -138,12 +138,19 @@ defmodule Clickhousex.Codec.RowBinary do
 
   # support for all additions (micros, millis, micros)
   defp extract_field(<<data::binary>>, {:datetime64, precision} = _datetime64, types, row, state) do
-    {:ok, timestamp, rest} = Binary.decode(data, :i64)
-    divider = :math.pow(10, precision) |> trunc()
-    unix_timestamp = div(timestamp, divider)
-    micros = rem(timestamp, divider)
-    elixir_timestamp = unix_timestamp |> DateTime.from_unix! |> DateTime.add(micros, :microsecond)
+    {:ok, unix_timestamp, rest} = Binary.decode(data, :i64)
+    elixir_timestamp = unix_timestamp |> DateTime.from_unix!(:microsecond)
     extract_row(rest, types, [elixir_timestamp | row], state)
+  end
+
+  defp extract_field(<<data::binary>>, {:nullable , {:datetime64, precision}} = _datetime64, types, row, state) do
+    case Binary.decode(data, :u8) do
+      {:ok, 1, rest} ->
+        <<_::binary-size(8), restline::binary>> = rest
+        extract_row(restline, types, [nil | row], state)
+      {:ok, 0, rest} ->
+        extract_field(rest, {:datetime64, precision}, types, row, state)
+      end
   end
 
 
