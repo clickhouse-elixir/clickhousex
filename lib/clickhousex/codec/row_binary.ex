@@ -146,8 +146,7 @@ defmodule Clickhousex.Codec.RowBinary do
   defp extract_field(<<data::binary>>, {:nullable , {:datetime64, precision}} = _datetime64, types, row, state) do
     case Binary.decode(data, :u8) do
       {:ok, 1, rest} ->
-        <<_::binary-size(8), restline::binary>> = rest
-        extract_row(restline, types, [nil | row], state)
+        extract_row(rest, types, [nil | row], state)
       {:ok, 0, rest} ->
         extract_field(rest, {:datetime64, precision}, types, row, state)
       end
