@@ -367,9 +367,12 @@ defmodule Clickhousex.Codec.Binary.Extractor do
 
       # Empty string optimization, prevents concatenating large data to an empty string and
       # reallocating the large data
-      def unquote(extractor_name)(<<>>, unquote_splicing(extractor_args), unquote(length_variable)) do
-        {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args), unquote(length_variable))}
-      end
+      # WARNING Premature optimization is the root of all evil
+      # This part does not work, if the emptystring is the last field of a query as it will return
+      # the {:resume, ...} instead of a value to the calling functions.
+      #def unquote(extractor_name)(<<>>, unquote_splicing(extractor_args), unquote(length_variable)) do
+      #  {:resume, &unquote(extractor_name)(&1, unquote_splicing(extractor_args), unquote(length_variable))}
+      #end
 
       def unquote(extractor_name)(<<rest::binary>>, unquote_splicing(extractor_args), unquote(length_variable)) do
         case rest do

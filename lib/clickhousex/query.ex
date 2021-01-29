@@ -29,7 +29,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
   @values_regex ~r/VALUES/i
   @create_query_regex ~r/\bCREATE\b/i
-  @insert_select_query_regex ~r/\bINSERT\b.*\bSELECT\b/i
+  @insert_select_query_regex ~r/\bINSERT\b.*\bSELECT\b/is
   @select_query_regex ~r/\bSELECT\b/i
   @insert_query_regex ~r/\bINSERT\b/i
   @alter_query_regex ~r/\bALTER\b/i
