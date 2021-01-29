@@ -152,6 +152,14 @@ defmodule Clickhousex.Codec.RowBinary do
       end
   end
 
+  defp extract_field(<<0, rest::binary>>, {:nullable, :nothing}, types, row, state) do
+    extract_row(rest, types, [nil | row], state)
+  end
+
+  defp extract_field(<<1, rest::binary>>, {:nullable, :nothing}, types, row, state) do
+    extract_row(rest, types, [nil | row], state)
+  end
+
 
   @scalar_types [
     :i64,
@@ -235,6 +243,10 @@ defmodule Clickhousex.Codec.RowBinary do
 
         {:datetime64, length}
     end
+  end
+
+  defp parse_type("Nothing") do
+    :nothing
   end
 
 
