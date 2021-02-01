@@ -143,13 +143,14 @@ defmodule Clickhousex.Codec.RowBinary do
     extract_row(rest, types, [elixir_timestamp | row], state)
   end
 
-  defp extract_field(<<data::binary>>, {:nullable , {:datetime64, precision}} = _datetime64, types, row, state) do
+  defp extract_field(<<data::binary>>, {:nullable, {:datetime64, precision}} = _datetime64, types, row, state) do
     case Binary.decode(data, :u8) do
       {:ok, 1, rest} ->
         extract_row(rest, types, [nil | row], state)
+
       {:ok, 0, rest} ->
         extract_field(rest, {:datetime64, precision}, types, row, state)
-      end
+    end
   end
 
   defp extract_field(<<0, rest::binary>>, {:nullable, :nothing}, types, row, state) do
@@ -159,7 +160,6 @@ defmodule Clickhousex.Codec.RowBinary do
   defp extract_field(<<1, rest::binary>>, {:nullable, :nothing}, types, row, state) do
     extract_row(rest, types, [nil | row], state)
   end
-
 
   @scalar_types [
     :i64,
@@ -248,7 +248,6 @@ defmodule Clickhousex.Codec.RowBinary do
   defp parse_type("Nothing") do
     :nothing
   end
-
 
   # Boolean isn't represented below because clickhouse has no concept
   # of booleans.
