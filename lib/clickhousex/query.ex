@@ -68,7 +68,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
   def encode(%{param_count: param_count} = query, params, _opts) when is_integer(param_count) and param_count > 0 do
     {query_part, _post_body_part} = do_parse(query)
-    encoded_params = Values.encode_parameters(query, query_part, params)
+    {query_part, encoded_params} = Values.encode_parameters(query, query_part, params)
 
     HTTPRequest.new()
     |> HTTPRequest.with_post_data(query_part)
@@ -116,7 +116,8 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp column_count(query, values_part) do
-    if not (values_part |> String.replace(" ", "") |> Regex.match?(@values_parameter_regex)) do
+    trimmed_query = values_part |> String.replace(" ", "") 
+    if not Regex.match?(@values_parameter_regex, trimmed_query) do
       raise ArgumentError, "Only spaces, questionmarks commas and enclosing parantheses are allowed in the VALUES part"
     end
 
@@ -128,7 +129,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     |> String.split(")", trim: true)
     |> Enum.map(&String.length/1)
 
-    if not row_lengths |> MapSet.new() |> MapSet.size() == 1 do
+    if (row_lengths |> MapSet.new() |> MapSet.size()) != 1 do
       raise ArgumentError, "All rows in the VALUES part have to be of the same length"
     end
   
@@ -140,7 +141,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp check_parameter_count(%{column_count: column_count}, params) do
-    if rem(params, column_count) != 0 do
+    if rem(length(params), column_count) != 0 do
       raise ArgumentError, "All columns in the VALUES part have to be the same length"
     end
   end

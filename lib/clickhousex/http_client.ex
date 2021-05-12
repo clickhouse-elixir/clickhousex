@@ -74,17 +74,40 @@ defmodule Clickhousex.HTTPClient do
     post(conn, query, request, database, opts)
   end
 
-  defp post(conn, query, request, database, opts) do
-    {recv_timeout, opts} = Keyword.pop(opts, :recv_timeout, 5000)
+  defp post(conn, query, %{query_in_body: true} = request, database, opts) do
+    sql_query = maybe_append_format(query, request.post_data) |> IO.iodata_to_binary |> IO.inspect
 
+    parameters =
+      Enum.reduce(request.query_params, %{}, fn {name, value}, acc ->
+        param_name = "param_" <> name
+        Map.put(acc, param_name, value)
+      end)
+      
+    query_string =
+      %{database: database}
+      |> Map.merge(parameters)
+      |> URI.encode_query()
+
+    path = "/?#{query_string}"
+    do_post(conn, query, path, sql_query, opts)
+  end
+
+  defp post(conn, query, %{query_in_body: false} = request, database, opts) do
+    sql_query = maybe_append_format(query, request.query_string_data)
     query_string =
       URI.encode_query(%{
         database: database,
-        query: IO.iodata_to_binary(request.query_string_data)
+        query: IO.iodata_to_binary(sql_query)
       })
 
     path = "/?#{query_string}"
-    post_body = maybe_append_format(query, request)
+
+    do_post(conn, query, path, request.post_data, opts)
+  end
+
+  defp do_post(conn, query, path, post_body, opts) do
+    {recv_timeout, opts} = Keyword.pop(opts, :recv_timeout, 5000)
+
     headers = headers(opts, post_body)
 
     with {:ok, conn, ref} <- Mint.HTTP.request(conn, "POST", path, headers, post_body),
@@ -148,10 +171,10 @@ defmodule Clickhousex.HTTPClient do
   end
 
   defp maybe_append_format(%Query{type: :select}, request) do
-    [request.post_data, " FORMAT ", Response.format()]
+    [request, " FORMAT ", Response.format()]
   end
 
   defp maybe_append_format(_, request) do
-    [request.post_data]
+    [request]
   end
 end

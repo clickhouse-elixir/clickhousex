@@ -24,7 +24,7 @@ defmodule Clickhousex.Codec.Values do
     
       params
       |> Enum.map(&(encode_param(query, &1)))
-      |> Enum.map(&(&1[1]))
+      |> Enum.map(&(elem(&1, 1)))
       |> Enum.chunk_every(column_count)
       |> Enum.map(fn line ->
         "(" <> Enum.join(line, ",") <> ")"
@@ -66,14 +66,14 @@ defmodule Clickhousex.Codec.Values do
 
   defp weave(query, [part | parts], [param | params], query_acc, params_acc, idx) do
     {type, param} = encode_param(query, param)
-    type_string = "{" <> to_string(idx) <> ":" <> type <> "}"
-    weave(query, parts, params, [type_string, part | query_acc], [{to_string(idx), param} | params_acc], idx + 1)
+    type_string = "{p" <> to_string(idx) <> ":" <> type <> "}"
+    weave(query, parts, params, [type_string, part | query_acc], [{"p" <> to_string(idx), param} | params_acc], idx + 1)
   end
 
   @doc false
   defp encode_param(query, param) when is_list(param) do
     encoded_params = Enum.map(param, &encode_param(query, &1))
-    types = Enum.map(encoded_params, &(&1[0])) |> MapSet.new()
+    types = Enum.map(encoded_params, &(elem(&1, 0))) |> MapSet.new()
 
     if MapSet.size(types) != 1 do
       raise ArgumentError, "All elements of an array have to have the same type"
@@ -81,7 +81,7 @@ defmodule Clickhousex.Codec.Values do
 
     type = types |> MapSet.to_list() |> hd()
 
-    values = Enum.map_join(encoded_params, ",", &(&1[1]))
+    values = Enum.map_join(encoded_params, ",", &(elem(&1, 1)))
 
     case query.type do
       :select ->
