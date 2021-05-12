@@ -28,15 +28,7 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   @impl Codec
-  def encode(query, replacements, params) do
-    params =
-      Enum.map(params, fn
-        %DateTime{} = dt -> DateTime.to_unix(dt)
-        other -> other
-      end)
-
-    Codec.Values.encode(query, replacements, params)
-  end
+  defdelegate encode(query, params), to: Codec.Values
 
   @impl Codec
   def decode(state(column_names: column_names, rows: rows, count: count)) do

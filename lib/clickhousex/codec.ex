@@ -10,11 +10,12 @@ defmodule Clickhousex.Codec do
 
   @type select_response :: %{column_names: [String.t()], rows: [tuple], row_count: non_neg_integer}
   @type state :: any
+  @type indexed_parameters :: {String.t(), String.t()}
 
   @callback response_format() :: String.t()
   @callback request_format() :: String.t()
   @callback new() :: state
   @callback append(state, iodata) :: state
   @callback decode(state) :: {:ok, select_response} | {:error, any}
-  @callback encode(query :: Clickhousex.Query.t(), param_replacements :: iodata, params :: [any]) :: iodata
+  @callback encode(query :: Clickhousex.Query.t(), params :: [any]) :: iodata
 end

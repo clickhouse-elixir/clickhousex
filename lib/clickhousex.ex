@@ -52,7 +52,7 @@ defmodule Clickhousex do
   end
 
   @spec query(DBConnection.conn(), binary(), list, Keyword.t()) ::
-          {:ok, iodata(), Clickhousex.Result.t()}
+          {:ok, iodata(), Clickhousex.Result.t()} | {:error, Clickhousex.Error.t()}
   def query(conn, statement, params \\ [], opts \\ []) do
     DBConnection.prepare_execute(conn, %Query{name: "", statement: statement}, params, opts)
   end
