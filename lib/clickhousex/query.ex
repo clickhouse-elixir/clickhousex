@@ -55,7 +55,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
     query
   end
 
-  def encode(%{type: :insert} = query, params, _opts) do
+  def encode(%{type: :insert, param_count: param_count} = query, params, _opts) when is_integer(param_count) and param_count > 0 do
     {query_part, values_part} = do_parse(query)
     query = column_count(query, values_part)
     check_parameter_count(query, params)
@@ -77,10 +77,8 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   def encode(query, _params, _opts) do
-    {query_part, _post_body_part} = do_parse(query) |> IO.inspect()
-
     HTTPRequest.new()
-    |> HTTPRequest.with_query_string_data(query_part)
+    |> HTTPRequest.with_query_string_data(query.statement)
   end
 
   def decode(_query, result, _opts) do
@@ -118,7 +116,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   defp column_count(query, values_part) do
     trimmed_query = values_part |> String.replace(" ", "") 
     if not Regex.match?(@values_parameter_regex, trimmed_query) do
-      raise ArgumentError, "Only spaces, questionmarks commas and enclosing parantheses are allowed in the VALUES part"
+      raise ArgumentError, "Only spaces, questionmarks, commas and enclosing parantheses are allowed in the VALUES part with parameters"
     end
 
     row_lengths =

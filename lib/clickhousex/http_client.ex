@@ -75,7 +75,7 @@ defmodule Clickhousex.HTTPClient do
   end
 
   defp post(conn, query, %{query_in_body: true} = request, database, opts) do
-    sql_query = maybe_append_format(query, request.post_data) |> IO.iodata_to_binary |> IO.inspect
+    sql_query = maybe_append_format(query, request.post_data) |> IO.iodata_to_binary
 
     parameters =
       Enum.reduce(request.query_params, %{}, fn {name, value}, acc ->

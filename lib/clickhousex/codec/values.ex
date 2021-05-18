@@ -9,6 +9,8 @@ defmodule Clickhousex.Codec.Values do
 
   alias Clickhousex.Query
 
+  @string_datatypes ~w[Date DateTime String]
+
   def encode(%Query{param_count: 0, type: :insert}, []) do
     # An insert query's arguments go into the post body and the query part goes into the query string.
     # If we don't have any arguments, we don't have to encode anything, but we don't want to return
@@ -24,6 +26,7 @@ defmodule Clickhousex.Codec.Values do
     
       params
       |> Enum.map(&(encode_param(query, &1)))
+      |> Enum.map(&escape_string/1)
       |> Enum.map(&(elem(&1, 1)))
       |> Enum.chunk_every(column_count)
       |> Enum.map(fn line ->
@@ -72,8 +75,13 @@ defmodule Clickhousex.Codec.Values do
 
   @doc false
   defp encode_param(query, param) when is_list(param) do
-    encoded_params = Enum.map(param, &encode_param(query, &1))
-    types = Enum.map(encoded_params, &(elem(&1, 0))) |> MapSet.new()
+    # Strings have to be always quoted in 
+    encoded_params =
+      param
+      |> Enum.map(&encode_param(query, &1))
+      # sting like values have to be always quoted in arrays
+      |> Enum.map(&escape_string/1)
+    types = Enum.map(encoded_params, &(elem(&1, 0))) |> MapSet.new() |> MapSet.delete("Nullable(UInt8)")
 
     if MapSet.size(types) != 1 do
       raise ArgumentError, "All elements of an array have to have the same type"
@@ -83,14 +91,7 @@ defmodule Clickhousex.Codec.Values do
 
     values = Enum.map_join(encoded_params, ",", &(elem(&1, 1)))
 
-    case query.type do
-      :select ->
-        # We pass lists to in clauses, and they shouldn't have brackets around them.
-        {"Array(#{type})", values}
-
-      _ ->
-        {"Array(#{type})", "[" <> values <> "]"}
-    end
+    {"Array(Nullable(#{type}))", "[" <> values <> "]"}
   end
 
   defp encode_param(_query, param) when is_integer(param) do
@@ -134,19 +135,21 @@ defmodule Clickhousex.Codec.Values do
   end
 
   defp encode_param(_query, %Date{} = date) do
-    {"Date", Date.to_iso8601(date)}
+    date_string = Date.to_iso8601(date)
+    {"Date", date_string}
   end
 
   defp encode_param(_query, param) do
     {"String", param}
   end
 
-  defp escape(s) do
-    s
-    |> String.replace("_", "\_")
-    |> String.replace("'", "\'")
-    |> String.replace("%", "\%")
-    |> String.replace(~s("), ~s(\\"))
-    |> String.replace("\\", "\\\\")
+  # When the Values are in the body, the string like values
+  # have to be put in quotes
+  defp escape_string({type, value}) when type in @string_datatypes do
+    {type, "'" <> value <> "'"}
+  end
+
+  defp escape_string({type, value}) do
+    {type, value}
   end
 end
