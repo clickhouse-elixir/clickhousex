@@ -34,7 +34,8 @@ defmodule Clickhousex.Mixfile do
       {:ex_doc, "~> 0.22", only: :dev},
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.5", only: :dev},
-      {:dialyxir, "~> 1.0", runtime: false, only: :dev}
+      {:dialyxir, "~> 1.0", runtime: false, only: :dev},
+      {:exrun, "~> 0.1.0"}
       # {:nicene, "~> 0.4.0", only: :dev}
     ]
   end
@@ -54,13 +55,15 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp maintainers do
-    ["Roman Chudov",
-     "Konstantin Grabar",
-     "Ivan Zinoviev",
-     "Evgeniy Shurmin",
-     "Alexey Lukyanov",
-     "Yaroslav Rogov",
-     "Ivan Sokolov",
-     "Georgy Sychev"]
+    [
+      "Roman Chudov",
+      "Konstantin Grabar",
+      "Ivan Zinoviev",
+      "Evgeniy Shurmin",
+      "Alexey Lukyanov",
+      "Yaroslav Rogov",
+      "Ivan Sokolov",
+      "Georgy Sychev"
+    ]
   end
 end
