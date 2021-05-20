@@ -94,6 +94,11 @@ defmodule Clickhousex.Codec.Values do
     {"Array(Nullable(#{type}))", "[" <> values <> "]"}
   end
 
+  # some function parameters need UInt8 and are not happy with Int64
+  defp encode_param(_query, param) when is_integer(param) and param >= 0 and param <= 255 do
+    {"UInt8", Integer.to_string(param)}
+  end
+
   defp encode_param(_query, param) when is_integer(param) do
     {"Int64", Integer.to_string(param)}
   end
