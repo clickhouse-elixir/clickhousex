@@ -158,7 +158,6 @@ defmodule Clickhousex.Codec.Binary.Extractor do
   # `vars` are varint parts, from high to low
   defp varint_decoding([_ | _] = vars) do
     vars
-    |> Enum.reverse()
     |> Enum.with_index()
     |> Enum.map(fn
       {var, 0} -> var

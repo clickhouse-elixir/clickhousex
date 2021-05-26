@@ -54,7 +54,7 @@ defmodule Clickhousex.Codec.ExtractorTest do
       rest = <<0::size(1), 14::size(7)>>
 
       assert {:resume, resume_fn} = Extractors.extract(first, :varint)
-      assert {:ok, 910, <<>>} == resume_fn.(rest)
+      assert {:ok, 1799, <<>>} == resume_fn.(rest)
     end
 
     test "it should resume ints" do
