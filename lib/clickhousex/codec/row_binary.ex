@@ -28,7 +28,7 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   @impl Codec
-  defdelegate encode(query, params), to: Codec.Values
+  defdelegate encode(query, params, opts), to: Codec.Values
 
   @impl Codec
   def decode(state(column_names: column_names, rows: rows, count: count)) do

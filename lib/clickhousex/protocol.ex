@@ -24,13 +24,13 @@ defmodule Clickhousex.Protocol do
   @doc false
   @spec connect(opts :: Keyword.t()) :: {:ok, state} | {:error, Exception.t()}
   def connect(opts) do
-    scheme = opts[:scheme] || :http
-    hostname = opts[:hostname] || "localhost"
-    port = opts[:port] || 8123
-    database = opts[:database] || "default"
+    scheme = opts[:scheme]
+    hostname = opts[:hostname]
+    port = opts[:port]
+    database = opts[:database]
     username = opts[:username]
     password = opts[:password]
-    timeout = opts[:timeout] || Clickhousex.timeout()
+    timeout = opts[:timeout]
 
     {:ok, conn} = Client.connect(scheme, hostname, port)
 

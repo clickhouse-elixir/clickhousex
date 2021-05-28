@@ -29,6 +29,7 @@ end
 defimpl DBConnection.Query, for: Clickhousex.Query do
   alias Clickhousex.HTTPRequest
   alias Clickhousex.Codec.Values
+  alias Clickhousex.Utils
 
   @values_regex ~r/VALUES/i
   @values_parameter_regex ~r/^(\((\?,)*\?\),)*(\((\?,)*\?\))$/
@@ -48,27 +49,30 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
     query = %{query | type: query_type(statement)}
 
-    %{query | param_count: param_count}
+    %{query | param_count: param_count}# |> IO.inspect
   end
 
   def describe(query, _opts) do
     query
   end
 
-  def encode(%{type: :insert, param_count: param_count} = query, params, _opts) when is_integer(param_count) and param_count > 0 do
+  def encode(%{type: :insert, param_count: param_count} = query, params, opts) when is_integer(param_count) and param_count > 0 do
+    opts = Utils.default_query_opts(opts)
     {query_part, values_part} = do_parse(query)
     query = column_count(query, values_part)
     check_parameter_count(query, params)
-    encoded_params = @codec.encode(query, params)
+    encoded_params = @codec.encode(query, params, opts)
 
     HTTPRequest.new()
     |> HTTPRequest.with_query_string_data(query_part)
     |> HTTPRequest.with_post_data(encoded_params)
   end
 
-  def encode(%{param_count: param_count} = query, params, _opts) when is_integer(param_count) and param_count > 0 do
+  def encode(%{param_count: param_count} = query, params, opts) when is_integer(param_count) and param_count > 0 do
+    opts = Utils.default_query_opts(opts)
+    #IO.inspect(params, label: "params")
     {query_part, _post_body_part} = do_parse(query)
-    {query_part, encoded_params} = Values.encode_parameters(query, query_part, params)
+    {query_part, encoded_params} = Values.encode_parameters(query, query_part, params, opts)# |> IO.inspect
 
     HTTPRequest.new()
     |> HTTPRequest.with_post_data(query_part)

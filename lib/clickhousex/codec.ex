@@ -17,5 +17,5 @@ defmodule Clickhousex.Codec do
   @callback new() :: state
   @callback append(state, iodata) :: state
   @callback decode(state) :: {:ok, select_response} | {:error, any}
-  @callback encode(query :: Clickhousex.Query.t(), params :: [any]) :: iodata
+  @callback encode(query :: Clickhousex.Query.t(), params :: [any], opts :: Keyword.t()) :: iodata
 end

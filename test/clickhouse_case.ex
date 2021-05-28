@@ -30,21 +30,17 @@ defmodule ClickhouseCase do
   end
 
   def select_all(ctx) do
-    select(ctx, "SELECT * from {{table}}")
+    select(ctx, "SELECT * from {{table}}", [])
   end
 
-  def select(ctx, select_statement) do
-    select(ctx, select_statement, [])
-  end
-
-  def select(ctx, select_statement, params) do
+  def select(ctx, select_statement, params, opts \\ []) do
     select_statement = parameterize(select_statement, ctx)
-    {:ok, _, _} = CH.query(ctx.client, select_statement, params)
+    {:ok, _, _} = CH.query(ctx.client, select_statement, params, opts)
   end
 
-  def insert(ctx, insert_statement, values) do
+  def insert(ctx, insert_statement, values, opts \\ []) do
     insert_statement = parameterize(insert_statement, ctx)
-    {:ok, _, _} = CH.query(ctx.client, insert_statement, values)
+    {:ok, _, _} = CH.query(ctx.client, insert_statement, values, opts)
   end
 
   defp parameterize(query, ctx) do
@@ -62,8 +58,8 @@ defmodule ClickhouseCase do
         only: [
           schema: 2,
           select_all: 1,
-          select: 2,
           select: 3,
+          select: 4,
           insert: 3
         ]
     end

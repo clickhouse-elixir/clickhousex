@@ -9,6 +9,7 @@ defmodule Clickhousex do
   """
 
   alias Clickhousex.Query
+  alias Clickhousex.Utils
 
   @typedoc """
   A connection process name, pid or reference.
@@ -18,8 +19,21 @@ defmodule Clickhousex do
   """
   @type conn :: DBConnection.conn()
 
-  @timeout 60_000
-  def timeout, do: @timeout
+  @type start_option ::
+          {:hostname, String.t()}
+          | {:port, :inet.port_number()}
+          | {:database, String.t()}
+          | {:username, String.t()}
+          | {:password, String.t()}
+          | {:timeout, timeout}
+          | {:ssl, boolean()}
+          | {:show_sensitive_data_connection_error, boolean}
+          | DBConnection.start_option()
+
+  @type query_option ::
+          {:datetime_precision, :dt32 | :dt64 | integer()}
+          | DBConnection.option()
+
 
   ### PUBLIC API ###
 
@@ -42,12 +56,13 @@ defmodule Clickhousex do
 
   @spec start_link(Keyword.t()) :: {:ok, pid} | {:error, term}
   def start_link(opts \\ []) do
-    opts = Keyword.put(opts, :show_sensitive_data_on_connection_error, true)
+    opts = Utils.default_opts(opts)
     DBConnection.start_link(Clickhousex.Protocol, opts)
   end
 
   @spec child_spec(Keyword.t()) :: Supervisor.Spec.spec()
   def child_spec(opts) do
+    opts = Utils.default_opts(opts)
     DBConnection.child_spec(Clickhousex.Protocol, opts)
   end
 
@@ -61,10 +76,5 @@ defmodule Clickhousex do
           {iodata(), Clickhousex.Result.t()}
   def query!(conn, statement, params \\ [], opts \\ []) do
     DBConnection.prepare_execute!(conn, %Query{name: "", statement: statement}, params, opts)
-  end
-
-  ## Helpers
-  def defaults(opts) do
-    Keyword.put_new(opts, :timeout, @timeout)
   end
 end
