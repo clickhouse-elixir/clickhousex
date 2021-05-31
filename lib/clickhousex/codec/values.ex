@@ -23,22 +23,21 @@ defmodule Clickhousex.Codec.Values do
       raise ArgumentError,
             "The number of parameters does not correspond to the number of question marks!"
     end
-    
-      params
-      |> Enum.map(&(encode_param(query, &1, opts)))
-      |> Enum.map(&escape_string/1)
-      |> Enum.map(&(elem(&1, 1)))
-      |> Enum.chunk_every(column_count)
-      |> Enum.map(fn line ->
-        "(" <> Enum.join(line, ",") <> ")"
-      end)
-      |> Enum.join(",")
+
+    params
+    |> Enum.map(&encode_param(query, &1, opts))
+    |> Enum.map(&escape_string/1)
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.chunk_every(column_count)
+    |> Enum.map(fn line ->
+      "(" <> Enum.join(line, ",") <> ")"
+    end)
+    |> Enum.join(",")
   end
 
   def encode_parameters(%Query{type: :insert}, _, [], _opts) do
     raise ArgumentError, "Function not defined for INSERT statements"
   end
-
 
   def encode_parameters(%Query{param_count: 0, statement: statement}, _, [], _opts) do
     {statement, nil}
@@ -70,7 +69,16 @@ defmodule Clickhousex.Codec.Values do
   defp weave(query, [part | parts], [param | params], query_acc, params_acc, idx, opts) do
     {type, param} = encode_param(query, param, opts)
     type_string = "{p" <> to_string(idx) <> ":" <> type <> "}"
-    weave(query, parts, params, [type_string, part | query_acc], [{"p" <> to_string(idx), param} | params_acc], idx + 1, opts)
+
+    weave(
+      query,
+      parts,
+      params,
+      [type_string, part | query_acc],
+      [{"p" <> to_string(idx), param} | params_acc],
+      idx + 1,
+      opts
+    )
   end
 
   @doc false
@@ -81,7 +89,8 @@ defmodule Clickhousex.Codec.Values do
       |> Enum.map(&encode_param(query, &1, opts))
       # sting like values have to be always quoted in arrays
       |> Enum.map(&escape_string/1)
-    types = Enum.map(encoded_params, &(elem(&1, 0))) |> MapSet.new() |> MapSet.delete("Nullable(UInt8)")
+
+    types = Enum.map(encoded_params, &elem(&1, 0)) |> MapSet.new() |> MapSet.delete("Nullable(UInt8)")
 
     if MapSet.size(types) != 1 do
       raise ArgumentError, "All elements of an array have to have the same type"
@@ -89,7 +98,7 @@ defmodule Clickhousex.Codec.Values do
 
     type = types |> MapSet.to_list() |> hd()
 
-    values = Enum.map_join(encoded_params, ",", &(elem(&1, 1)))
+    values = Enum.map_join(encoded_params, ",", &elem(&1, 1))
 
     {"Array(Nullable(#{type}))", "[" <> values <> "]"}
   end

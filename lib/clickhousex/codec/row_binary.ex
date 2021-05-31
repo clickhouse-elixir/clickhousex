@@ -129,7 +129,8 @@ defmodule Clickhousex.Codec.RowBinary do
   end
 
   # precision defines the number of sub-second digits
-  defp extract_field(<<data::binary>>, {:datetime64, precision} = _datetime64, types, row, state) when is_integer(precision) do
+  defp extract_field(<<data::binary>>, {:datetime64, precision} = _datetime64, types, row, state)
+       when is_integer(precision) do
     {:ok, unix_timestamp, rest} = Binary.decode(data, :i64)
 
     timestamp =

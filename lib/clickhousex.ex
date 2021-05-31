@@ -34,7 +34,6 @@ defmodule Clickhousex do
           {:datetime_precision, :dt32 | :dt64 | integer()}
           | DBConnection.option()
 
-
   ### PUBLIC API ###
 
   @doc """

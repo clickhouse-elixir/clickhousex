@@ -16,8 +16,8 @@ defmodule Clickhousex.Query do
             statement: "",
             type: :select,
             params: [],
-    param_count: nil,
-    column_count: 0,
+            param_count: nil,
+            column_count: 0,
             columns: []
 
   def new(statement) do
@@ -49,14 +49,15 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
     query = %{query | type: query_type(statement)}
 
-    %{query | param_count: param_count}# |> IO.inspect
+    %{query | param_count: param_count}
   end
 
   def describe(query, _opts) do
     query
   end
 
-  def encode(%{type: :insert, param_count: param_count} = query, params, opts) when is_integer(param_count) and param_count > 0 do
+  def encode(%{type: :insert, param_count: param_count} = query, params, opts)
+      when is_integer(param_count) and param_count > 0 do
     opts = Utils.default_query_opts(opts)
     {query_part, values_part} = do_parse(query)
     query = column_count(query, values_part)
@@ -70,14 +71,13 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
   def encode(%{param_count: param_count} = query, params, opts) when is_integer(param_count) and param_count > 0 do
     opts = Utils.default_query_opts(opts)
-    #IO.inspect(params, label: "params")
     {query_part, _post_body_part} = do_parse(query)
-    {query_part, encoded_params} = Values.encode_parameters(query, query_part, params, opts)# |> IO.inspect
+    {query_part, encoded_params} = Values.encode_parameters(query, query_part, params, opts)
 
     HTTPRequest.new()
     |> HTTPRequest.with_post_data(query_part)
     |> HTTPRequest.with_query_params(encoded_params)
-    |> HTTPRequest.with_query_in_body
+    |> HTTPRequest.with_query_in_body()
   end
 
   def encode(query, _params, _opts) do
@@ -150,7 +150,6 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
       raise ArgumentError, "All columns in the VALUES part have to be the same length"
     end
   end
-
 end
 
 defimpl String.Chars, for: Clickhousex.Query do

@@ -75,14 +75,14 @@ defmodule Clickhousex.HTTPClient do
   end
 
   defp post(conn, query, %{query_in_body: true} = request, database, opts) do
-    sql_query = maybe_append_format(query, request.post_data) |> IO.iodata_to_binary
+    sql_query = maybe_append_format(query, request.post_data) |> IO.iodata_to_binary()
 
     parameters =
       Enum.reduce(request.query_params, %{}, fn {name, value}, acc ->
         param_name = "param_" <> name
         Map.put(acc, param_name, value)
       end)
-      
+
     query_string =
       %{database: database}
       |> Map.merge(parameters)
@@ -94,6 +94,7 @@ defmodule Clickhousex.HTTPClient do
 
   defp post(conn, query, %{query_in_body: false} = request, database, opts) do
     sql_query = maybe_append_format(query, request.query_string_data)
+
     query_string =
       URI.encode_query(%{
         database: database,

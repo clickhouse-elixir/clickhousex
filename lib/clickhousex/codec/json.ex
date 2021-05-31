@@ -11,7 +11,7 @@ defmodule Clickhousex.Codec.JSON do
   alias Clickhousex.Codec
   @behaviour Codec
 
-  defdelegate encode(query, replacements, params), to: Codec.Values
+  defdelegate encode(query, params, opts), to: Codec.Values
 
   @impl Codec
   def request_format do
