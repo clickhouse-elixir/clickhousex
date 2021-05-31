@@ -134,7 +134,7 @@ defmodule Clickhousex.Codec.Values do
       |> DateTime.to_iso8601()
       |> String.replace("Z", "")
 
-    {dt_type , iso_date}
+    {dt_type, iso_date}
   end
 
   defp encode_param(_query, %NaiveDateTime{} = naive_datetime, opts) do
@@ -143,7 +143,7 @@ defmodule Clickhousex.Codec.Values do
 
     datetime =
       case datetime_precision do
-        :dt32 -> DateTime.truncate(naive_datetime, :second)
+        :dt32 -> NaiveDateTime.truncate(naive_datetime, :second)
         _ -> naive_datetime
       end
 
@@ -175,11 +175,17 @@ defmodule Clickhousex.Codec.Values do
 
   defp datetime_type(datetime_precision) do
     case datetime_precision do
-      :dt32 -> "DateTime"
-      :dt64 -> "DateTime64"
+      :dt32 ->
+        "DateTime"
+
+      :dt64 ->
+        "DateTime64"
+
       precision when is_integer(precision) and precision >= 0 and precision <= 9 ->
         "DateTime64(#{precision})"
-      _ -> raise ArgumentError, "wrong precision for DateTime"
+
+      _ ->
+        raise ArgumentError, "wrong precision for DateTime"
     end
   end
 end

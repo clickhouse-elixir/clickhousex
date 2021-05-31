@@ -55,3 +55,13 @@ iex(3)>
 ## Documentation
 
 Documentation can be found [here](https://hexdocs.pm/clickhousex).
+
+## Testing Clickhousex
+
+If you want to run the `mix test` with a Clickhouse database, which is not
+reachable on `localhost`, you have to set it explicitly.
+
+```elixir
+export test_db_hostname="<clickhousex hostname>"
+mix test
+```

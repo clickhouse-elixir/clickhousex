@@ -39,29 +39,171 @@ defmodule Clickhousex.QueryTest do
     assert {:ok, _, %Result{command: :selected, columns: ["name"], num_rows: 1, rows: [{"qwerty"}]}} = select_all(ctx)
   end
 
-  test "parametrized queries", ctx do
-    create_statement = """
-    CREATE TABLE {{table}} (
-      id Int32,
-      name String
-     ) ENGINE = Memory
-    """
+  describe "parameterized queries" do
+    test "parametrized insert queries", ctx do
+      create_statement = """
+      CREATE TABLE {{table}} (
+        id Int32,
+        number UInt64,
+        float Float64,
+        name String
+       ) ENGINE = Memory
+      """
 
-    assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+      assert {:ok, _, %Result{}} = schema(ctx, create_statement)
 
-    assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
-             insert(ctx, "INSERT INTO {{table}} VALUES (?, ?)", [
-               1,
-               "abyrvalg"
-             ])
+      assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+               insert(ctx, "INSERT INTO {{table}} VALUES (?, ?, ?, ?)", [
+                 1,
+                 643_225,
+                 54356.0,
+                 "abyrvalg"
+               ])
 
-    assert {:ok, _,
-            %Result{
-              command: :selected,
-              columns: ["id", "name"],
-              num_rows: 1,
-              rows: [{1, "abyrvalg"}]
-            }} = select_all(ctx)
+      assert {:ok, _,
+              %Result{
+                command: :selected,
+                columns: ["id", "number", "float", "name"],
+                num_rows: 1,
+                rows: [{1, 643_225, 54356.0, "abyrvalg"}]
+              }} = select_all(ctx)
+    end
+
+    test "parameterized select queries", ctx do
+      create_statement = """
+      CREATE TABLE {{table}} (
+        id Int32,
+        number UInt64,
+        float Float64,
+        name String
+       ) ENGINE = Memory
+      """
+
+      assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+      insert_query = "INSERT INTO {{table}} VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)"
+
+      assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+               insert(ctx, insert_query, [
+                 1,
+                 643_225,
+                 54356.0,
+                 "abyrvalg",
+                 2,
+                 2,
+                 2.0,
+                 "B",
+                 3,
+                 3,
+                 3.14,
+                 "C"
+               ])
+
+      expected_result = %Result{
+        command: :selected,
+        columns: ["id", "number", "float", "name"],
+        num_rows: 1,
+        rows: [{3, 3, 3.14, "C"}]
+      }
+
+      query = "SELECT * FROM {{table}} WHERE id = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [3])
+
+      query = "SELECT * FROM {{table}} WHERE number = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [3.0])
+
+      query = "SELECT * FROM {{table}} WHERE float >= ? AND float <= ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [3.13, 3.15])
+
+      query = "SELECT * FROM {{table}} WHERE name = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, ["C"])
+
+      # Check for correct error handling on length
+      query = "SELECT * FROM {{table}} WHERE name = ?"
+
+      assert_raise ArgumentError,
+                   "The number of parameters does not correspond to the number of question marks!",
+                   fn -> select(ctx, query, []) end
+
+      query = "SELECT * FROM {{table}} WHERE name = ?"
+
+      assert_raise ArgumentError,
+                   "The number of parameters does not correspond to the number of question marks!",
+                   fn -> select(ctx, query, ["C", "D"]) end
+    end
+
+    test "parameterized date queries", ctx do
+      create_statement = """
+      CREATE TABLE {{table}} (
+        id Int32,
+        date1 Date,
+        datetime1 DateTime,
+        datetime2 DateTime64,
+        datetime3 DateTime64(0),
+        datetime4 DateTime64(6)
+       ) ENGINE = Memory
+      """
+
+      assert {:ok, _, %Result{}} = schema(ctx, create_statement)
+
+      insert_query = """
+      INSERT INTO {{table}} VALUES
+      (?, ?, ?, ?, ?, ?),
+      (?, ?, ?, ?, ?, ?),
+      (?, ?, ?, ?, ?, ?)
+      """
+
+      assert {:ok, _, %Result{command: :updated, num_rows: 1}} =
+               insert(ctx, insert_query, [
+                 1,
+                 ~D[1987-11-05],
+                 ~N[1987-11-05T13:55:14.123],
+                 "1987-11-05T13:55:14.123",
+                 "1987-11-05T13:55:14",
+                 "1987-11-05T13:55:14.123456",
+                 2,
+                 ~D[2087-11-05],
+                 ~N[2087-11-05T13:55:14.123],
+                 "2087-11-05T13:55:14.123",
+                 "2087-11-05T13:55:14",
+                 "2087-11-05T13:55:14.123456",
+                 3,
+                 ~D[2087-11-06],
+                 ~N[2087-11-06T13:55:14.123],
+                 "2087-11-06T13:55:14.123",
+                 "2087-11-06T13:55:14",
+                 "2087-11-05T13:55:14.000000"
+               ])
+
+      expected_result = %Result{
+        command: :selected,
+        columns: ["id", "date1", "datetime1", "datetime2", "datetime3", "datetime4"],
+        num_rows: 1,
+        rows: [
+          {2, ~D[2087-11-05], ~N[2087-11-05T13:55:14], ~N[2087-11-05T13:55:14.123000], ~N[2087-11-05T13:55:14.000000],
+           ~N[2087-11-05T13:55:14.123456]}
+        ]
+      }
+
+      query = "SELECT * FROM {{table}} WHERE date1 = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [~D[2087-11-05]])
+
+      query = "SELECT * FROM {{table}} WHERE datetime1 = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [~N[2087-11-05T13:55:14.123]])
+
+      query = "SELECT * FROM {{table}} WHERE datetime2 = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [~N[2087-11-05T13:55:14.123]], datetime_precision: :dt64)
+
+      query = "SELECT * FROM {{table}} WHERE datetime3 = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [~N[2087-11-05T13:55:14.123]], datetime_precision: 0)
+
+      query = "SELECT * FROM {{table}} WHERE datetime4 = ?"
+      assert {:ok, _, ^expected_result} = select(ctx, query, [~U[2087-11-05T13:55:14.123456Z]], datetime_precision: 6)
+
+      query = "SELECT * FROM {{table}} WHERE datetime4 = ?"
+      {:ok, _, actual_result} = select(ctx, query, [~N[2087-11-05T13:55:14.123456]], datetime_precision: 0)
+      assert expected_result != actual_result
+    end
   end
 
   test "scalar db types", ctx do
@@ -117,7 +259,7 @@ defmodule Clickhousex.QueryTest do
                ]
              )
 
-    assert {:ok, _, %Result{columns: column_names, rows: [row]}} = select_all(ctx)
+    assert {:ok, _, %Result{columns: _column_names, rows: [row]}} = select_all(ctx)
 
     naive_datetime =
       datetime
@@ -334,5 +476,20 @@ defmodule Clickhousex.QueryTest do
                "foobar@bar.com",
                1
              ])
+  end
+
+  test "long column names", ctx do
+    long_column_name =
+      "tSDco1R4Uw3vMlH04XWsEFbtDHJjx492DHBDFx3gQWYMNtq6qs5rh" <>
+        "H1g6K3th2x5YaQ1vVMZ6Ub59KMsM8cWsxVgwHJoKQgzZB6Vqyw" <>
+        "kIw8fZXyBB4WdDqIEUSVYsvAtDsPM1BMZcLzXmTCdvt1KUX"
+
+    select_statement = """
+    SELECT 1 AS
+    `#{long_column_name}`
+    """
+
+    assert {:ok, _, %{columns: columns}} = select(ctx, select_statement, [])
+    assert [long_column_name] == columns
   end
 end

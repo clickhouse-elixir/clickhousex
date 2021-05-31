@@ -137,12 +137,13 @@ defmodule Clickhousex.Codec.RowBinary do
         precision <= 9 ->
           exponent = 9 - precision
           unix_timestamp * trunc(:math.pow(10, exponent))
+
         true ->
           exponent = precision - 9
           div(unix_timestamp, trunc(:math.pow(10, exponent)))
       end
 
-    elixir_timestamp = timestamp |> DateTime.from_unix!(:nanosecond)
+    elixir_timestamp = timestamp |> DateTime.from_unix!(:nanosecond) |> DateTime.to_naive()
     extract_row(rest, types, [elixir_timestamp | row], state)
   end
 

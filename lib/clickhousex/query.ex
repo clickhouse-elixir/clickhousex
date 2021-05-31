@@ -118,23 +118,26 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp column_count(query, values_part) do
-    trimmed_query = values_part |> String.replace(" ", "") 
+    trimmed_query = values_part |> String.replace(" ", "") |> String.replace("\n", "")
+
     if not Regex.match?(@values_parameter_regex, trimmed_query) do
-      raise ArgumentError, "Only spaces, questionmarks, commas and enclosing parantheses are allowed in the VALUES part with parameters"
+      raise ArgumentError,
+            "Only spaces, questionmarks, commas and enclosing parantheses are allowed in the VALUES part with parameters"
     end
 
     row_lengths =
-    values_part
-    |> String.replace(" ", "")
-    |> String.replace("(", "")
-    |> String.replace(",", "")
-    |> String.split(")", trim: true)
-    |> Enum.map(&String.length/1)
+      values_part
+      |> String.replace(" ", "")
+      |> String.replace("\n", "")
+      |> String.replace("(", "")
+      |> String.replace(",", "")
+      |> String.split(")", trim: true)
+      |> Enum.map(&String.length/1)
 
-    if (row_lengths |> MapSet.new() |> MapSet.size()) != 1 do
+    if row_lengths |> MapSet.new() |> MapSet.size() != 1 do
       raise ArgumentError, "All rows in the VALUES part have to be of the same length"
     end
-  
+
     %{query | column_count: hd(row_lengths)}
   end
 
