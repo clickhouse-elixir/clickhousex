@@ -53,13 +53,15 @@ defmodule Clickhousex.Mixfile do
   end
 
   defp maintainers do
-    ["Roman Chudov",
-     "Konstantin Grabar",
-     "Ivan Zinoviev",
-     "Evgeniy Shurmin",
-     "Alexey Lukyanov",
-     "Yaroslav Rogov",
-     "Ivan Sokolov",
-     "Georgy Sychev"]
+    [
+      "Roman Chudov",
+      "Konstantin Grabar",
+      "Ivan Zinoviev",
+      "Evgeniy Shurmin",
+      "Alexey Lukyanov",
+      "Yaroslav Rogov",
+      "Ivan Sokolov",
+      "Georgy Sychev"
+    ]
   end
 end
