@@ -194,8 +194,7 @@ defmodule Clickhousex.Codec.RowBinary do
   defp parse_type(<<"FixedString(", rest::binary>>) do
     case Integer.parse(rest) do
       {length, rest} ->
-        rest
-        |> String.replace_suffix(")", "")
+        _ = String.replace_suffix(rest, ")", "")
 
         {:fixed_string, length}
     end
